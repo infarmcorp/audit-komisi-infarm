@@ -237,6 +237,14 @@ tr.prob:hover td{background:#FAE0E0;}
   .page{padding:20px;}
 }
 
+/* ---------- Header filter dropdown (inline arrow) ---------- */
+th .hf-wrap{display:inline-flex;align-items:center;gap:0;position:relative;cursor:pointer;}
+th .hf-wrap select.hfilt{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;font-size:14px;}
+th .hf-wrap .hf-arrow{display:inline-flex;align-items:center;margin-left:4px;color:var(--mut2);transition:.15s;}
+th .hf-wrap .hf-arrow svg{width:13px;height:13px;}
+th .hf-wrap.active .hf-arrow{color:var(--green-tx);}
+th .hf-wrap.active{color:var(--green-tx);}
+
 /* ---------- Tweakable: smooth feel transitions ---------- */
 .card,.stat,.plat,.health,.topbar,.side,.dz,.nv,.btn,td,th{transition:background-color .25s ease,border-color .25s ease,padding .2s ease;}
 
@@ -341,7 +349,7 @@ var NAV=[
   {id:3,ic:'clean',t:'Rapikan Kolom',sub:'Buang kolom Excel yang tidak perlu'}
 ];
 
-var S={tab:'dash',view:'shopee',filter:'all',q:'',scope:'both',mapSp:[],mapTk:[],src:{},
+var S={tab:'dash',view:'shopee',filter:'all',q:'',scope:'both',colSt:'all',colStd:'all',colAds:'all',mapSp:[],mapTk:[],src:{},
   msFile:'',msSku:'',msId:'', mtFile:'',mtSku:'',mtId:'',
   msRaw:[],mtRaw:[],
   lsFile:'',lsSku:'',lsComm:'',lsRaw:[],
@@ -383,6 +391,8 @@ function parseFile(file){return new Promise(function(ok,fail){
   else{var rd=new FileReader();rd.onload=function(e){try{var wb=XLSX.read(e.target.result,{type:'array'});var sheets={},names=[];wb.SheetNames.forEach(function(sn){var aoa=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:''});sheets[sn]=detectHeader(aoa);names.push(sn);});ok({names:names,sheets:sheets});}catch(err){fail(err);}};rd.onerror=fail;rd.readAsArrayBuffer(file);}
 });}
 
+var STAT_OPTS=[['all','Semua'],['match','Match'],['mismatch','Mismatch'],['tier_invalid','Tier salah'],['target_invalid','LAPB salah'],['no_lapb','Tdk di LAPB'],['no_target','LAPB kosong'],['no_sku','SKU tdk ketemu'],['no_comm','Komisi kosong']];
+function hfiltHtml(id,val,fn){var arrow='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';return '<span class="hf-wrap'+(val!=='all'?' active':'')+'"><span class="hf-arrow">'+arrow+'</span><select class="hfilt" onchange="'+fn+'(this.value)">'+STAT_OPTS.map(function(o){return '<option value="'+o[0]+'"'+(val===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('')+'</select></span>';}
 var STAT={match:['Match','b-match'],mismatch:['Mismatch','b-mismatch'],tier_invalid:['Tier salah','b-tier'],target_invalid:['LAPB salah','b-warn'],no_lapb:['Tdk di LAPB','b-warn'],no_target:['LAPB kosong','b-gray'],no_sku:['SKU tdk ketemu','b-gray'],no_comm:['Komisi kosong','b-gray']};
 var bge=function(st){var c=STAT[st]||STAT.no_sku;return '<span class="bdg '+c[1]+'">'+c[0]+'</span>';};
 var sopts=function(keys,sel){var h='<option value="">— kolom —</option>';keys.forEach(function(k){h+='<option value="'+esc(k)+'"'+(k===sel?' selected':'')+'>'+esc(k)+'</option>';});return h;};
@@ -465,10 +475,6 @@ function actCell(status,act,subText){
 }
 
 function flagsOf(r){
-  if(S.view==='tiktok'&&S.scope!=='both'){
-    var st=S.scope==='ads'?r.aStatus:r.sStatus;
-    return {ok:st==='match',prob:PROB.indexOf(st)>-1,warn:WARN.indexOf(st)>-1};
-  }
   return {ok:r.ok,prob:r.prob,warn:r.warn};
 }
 function matchQ(r){var q=(S.q||'').trim().toLowerCase();if(!q)return true;return String(r.sku).toLowerCase().indexOf(q)>-1||String(r.pid).toLowerCase().indexOf(q)>-1||String(r.nm||'').toLowerCase().indexOf(q)>-1;}
@@ -493,9 +499,13 @@ function p2(){
     +'<div style="flex:1"></div><button class="btn btn-ghost" onclick="exXl()">'+IC.download+'Export Excel</button></div>';
   var R=S.view==='shopee'?S.resSp:S.resTk;
   if(!R)return tog+'<div class="empty"><div class="eic">'+IC.box+'</div><p>Data '+(S.view==='shopee'?'Shopee':'TikTok')+' belum di-upload.</p></div>';
-  var filt=R.filter(function(r){if(!matchQ(r))return false;var f=flagsOf(r);if(S.filter==='problem')return f.prob;if(S.filter==='match')return f.ok;if(S.filter==='warn')return f.warn;return true;});
+  var filt=R.filter(function(r){if(!matchQ(r))return false;var f=flagsOf(r);if(S.filter==='problem'&&!f.prob)return false;if(S.filter==='match'&&!f.ok)return false;if(S.filter==='warn'&&!f.warn)return false;
+    if(S.view==='shopee'&&S.colSt!=='all'&&r.status!==S.colSt)return false;
+    if(S.view==='tiktok'&&S.colStd!=='all'&&r.sStatus!==S.colStd)return false;
+    if(S.view==='tiktok'&&S.colAds!=='all'&&r.aStatus!==S.colAds)return false;
+    return true;});
   var fl=[['all','Semua'],['problem','Bermasalah'],['match','Sesuai'],['warn','Perlu cek']].map(function(f){return '<button class="fl'+(S.filter===f[0]?' on':'')+'" onclick="apf(\''+f[0]+'\')">'+f[1]+'</button>';}).join('');
-  var scopeBtns=S.view==='tiktok'?'<span class="fdiv">status untuk:</span>'+[['both','Std + Ads'],['std','Komisi Std'],['ads','Komisi Ads']].map(function(s){return '<button class="sc'+(S.scope===s[0]?' on':'')+'" onclick="setScope(\''+s[0]+'\')">'+s[1]+'</button>';}).join(''):'';
+  var scopeBtns='';
   var filterBar='<div class="toolbar"><input id="q" class="qbox" placeholder="Cari SKU atau Product ID..." value="'+esc(S.q)+'" oninput="setQ(this.value)">'+fl+scopeBtns+'</div>';
   var diag='';
   var mapList=S.view==='shopee'?S.mapSp:S.mapTk;
@@ -508,10 +518,10 @@ function p2(){
   var nmcell=function(r){var sub=(r.nm?'<div class="subc">'+esc(r.nm)+'</div>':'')+(r.sugg?'<div class="subc" style="color:var(--amber-tx)">&#8776; '+esc(r.sugg)+' ?</div>':'');return '<td><div class="mono" style="font-weight:600">'+esc(r.sku)+'</div>'+sub+'</td>';};
   var head,rows,mw;
   if(S.view==='shopee'){
-    mw=640;head='<tr><th>SKU</th><th>Product ID</th><th style="text-align:right">Target (LAPB)</th><th style="text-align:right">Komisi SC</th><th style="text-align:center">Status</th></tr>';
+    mw=640;head='<tr><th>SKU</th><th>Product ID</th><th style="text-align:right">Target (LAPB)</th><th style="text-align:right">Komisi SC</th><th style="text-align:center"><span style="display:inline-flex;align-items:center">Status'+hfiltHtml('colSt',S.colSt,'setColSt')+'</span></th></tr>';
     rows=filt.map(function(r){return '<tr class="'+(r.prob?'prob':'')+'">'+nmcell(r)+'<td class="mono">'+esc(r.pid)+'</td>'+tgtCell(r.tier,r.expKom,r.smp,r.status)+actCell(r.status,r.act)+'<td style="text-align:center">'+bge(r.status)+'</td></tr>';}).join('');
   }else{
-    mw=820;head='<tr><th>SKU</th><th>Product ID</th><th style="text-align:right">Std target</th><th style="text-align:right">Std SC</th><th style="text-align:center">Std</th><th style="text-align:right">Ads target</th><th style="text-align:right">Ads SC</th><th style="text-align:center">Ads</th></tr>';
+    mw=820;head='<tr><th>SKU</th><th>Product ID</th><th style="text-align:right">Std target</th><th style="text-align:right">Std SC</th><th style="text-align:center"><span style="display:inline-flex;align-items:center">Status Std'+hfiltHtml('colStd',S.colStd,'setColStd')+'</span></th><th style="text-align:right">Ads target</th><th style="text-align:right">Ads SC</th><th style="text-align:center"><span style="display:inline-flex;align-items:center">Status Ads'+hfiltHtml('colAds',S.colAds,'setColAds')+'</span></th></tr>';
     rows=filt.map(function(r){return '<tr class="'+(r.prob?'prob':'')+'">'+nmcell(r)+'<td class="mono">'+esc(r.pid)+'</td>'+tgtCell(r.sTier,r.sExp,r.sSmp,r.sStatus)+actCell(r.sStatus,r.sAct)+'<td style="text-align:center">'+bge(r.sStatus)+'</td>'+tgtCell(r.aTier,r.aExp,r.aSmp,r.aStatus)+actCell(r.aStatus,r.aAct)+'<td style="text-align:center">'+bge(r.aStatus)+'</td></tr>';}).join('');
   }
   if(!filt.length)rows='<tr><td colspan="'+(S.view==='shopee'?5:8)+'" style="text-align:center;padding:40px;color:var(--mut)">Tidak ada baris cocok dengan filter.</td></tr>';
@@ -596,7 +606,7 @@ function p_dash(){
     +'</div>';
   return html;
 }
-function goDetail(v){S.view=v;S.filter='all';S.q='';S.scope='both';sw(2);}
+function goDetail(v){S.view=v;S.filter='all';S.q='';S.scope='both';S.colSt='all';S.colStd='all';S.colAds='all';sw(2);}
 
 /* ============ RENDER / NAV ============ */
 function buildNav(){
@@ -632,10 +642,13 @@ function rc(){var el=document.getElementById('content');if(!el)return;
 }
 
 function sw(t){S.tab=t;rc();}
-function vw(v){S.view=v;S.filter='all';S.q='';S.scope='both';rc();}
+function vw(v){S.view=v;S.filter='all';S.q='';S.scope='both';S.colSt='all';S.colStd='all';S.colAds='all';rc();}
 function apf(f){S.filter=f;rc();}
 function setQ(v){S.q=v;rc();var q=document.getElementById('q');if(q){q.focus();var n=q.value.length;try{q.setSelectionRange(n,n);}catch(e){}}}
 function setScope(s){S.scope=s;rc();}
+function setColSt(v){S.colSt=v;rc();}
+function setColStd(v){S.colStd=v;rc();}
+function setColAds(v){S.colAds=v;rc();}
 function hDrop(e,id){e.preventDefault();var f=e.dataTransfer.files[0];if(f)hFile(id,f);}
 function hCC(id,key){var el=document.getElementById(id);if(el)S[key]=el.value;}
 
