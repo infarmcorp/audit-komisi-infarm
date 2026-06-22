@@ -396,13 +396,13 @@ function parseFile(file){return new Promise(function(ok,fail){
   else{var rd=new FileReader();rd.onload=function(e){try{var wb=XLSX.read(e.target.result,{type:'array'});var sheets={},names=[];wb.SheetNames.forEach(function(sn){var aoa=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:''});sheets[sn]=detectHeader(aoa);names.push(sn);});ok({names:names,sheets:sheets});}catch(err){fail(err);}};rd.onerror=fail;rd.readAsArrayBuffer(file);}
 });}
 
-var STAT_OPTS=[['all','Semua'],['match','Match'],['mismatch','Mismatch'],['tier_invalid','Tier salah'],['target_invalid','LAPB salah'],['no_lapb','Tdk di LAPB'],['no_target','LAPB kosong'],['no_sku','SKU tdk ketemu'],['no_comm','Komisi kosong']];
+var STAT_OPTS=[['all','Semua'],['match','Match'],['mismatch','Mismatch'],['tier_invalid','Tier salah'],['target_invalid','LAPB salah'],['no_lapb','Tdk di LAPB'],['no_target','LAPB kosong'],['no_sku','SKU tdk ketemu'],['no_comm','Komisi kosong'],['no_sc','Tdk di SC']];
 function hfiltHtml(id,val,fn){var arrow='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';return '<span class="hf-wrap'+(val!=='all'?' active':'')+'"><span class="hf-arrow">'+arrow+'</span><select class="hfilt" onchange="'+fn+'(this.value)">'+STAT_OPTS.map(function(o){return '<option value="'+o[0]+'"'+(val===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('')+'</select></span>';}
-var STAT={match:['Match','b-match'],mismatch:['Mismatch','b-mismatch'],tier_invalid:['Tier salah','b-tier'],target_invalid:['LAPB salah','b-warn'],no_lapb:['Tdk di LAPB','b-warn'],no_target:['LAPB kosong','b-gray'],no_sku:['SKU tdk ketemu','b-gray'],no_comm:['Komisi kosong','b-gray']};
+var STAT={match:['Match','b-match'],mismatch:['Mismatch','b-mismatch'],tier_invalid:['Tier salah','b-tier'],target_invalid:['LAPB salah','b-warn'],no_lapb:['Tdk di LAPB','b-warn'],no_target:['LAPB kosong','b-gray'],no_sku:['SKU tdk ketemu','b-gray'],no_comm:['Komisi kosong','b-gray'],no_sc:['Tdk di SC','b-warn']};
 var bge=function(st){var c=STAT[st]||STAT.no_sku;return '<span class="bdg '+c[1]+'">'+c[0]+'</span>';};
 var sopts=function(keys,sel){var h='<option value="">— kolom —</option>';keys.forEach(function(k){h+='<option value="'+esc(k)+'"'+(k===sel?' selected':'')+'>'+esc(k)+'</option>';});return h;};
 var psel=function(id,keys,sel){var el=document.getElementById(id);if(el)el.innerHTML=sopts(keys,sel);};
-var WARN=['no_lapb','no_target','no_sku','no_comm','target_invalid'],PROB=['mismatch'];
+var WARN=['no_lapb','no_target','no_sku','no_comm','target_invalid','no_sc'],PROB=['mismatch'];
 
 var dz=function(id,lbl,sub,fname){
   var inner=fname?'<div class="ok">'+IC.check+esc(fname)+'</div>':'<div class="ic">'+IC.up+'</div><div class="lb">'+esc(lbl)+'</div><div class="sub">'+esc(sub)+'</div>';
@@ -725,6 +725,13 @@ function runAudit(){
       var a=auditSC(sku,tgt,act,SP_TIER,SP_T2K,SP_T2S,'komisi');
       return{pid:pid,sku:sku||'-',nm:nk?String(r[nk]||''):'',sugg:(a.status==='no_lapb'?suggest(sku,spBody):''),tier:a.tier,tgtInv:a.tgtInv,expKom:a.expKom,smp:a.smp,act:a.act,status:a.status,ok:a.status==='match',prob:PROB.indexOf(a.status)>-1,warn:WARN.indexOf(a.status)>-1};
     });
+    // Detect LAPB SKUs not in Shopee SC
+    var spScSkus={};S.resSp.forEach(function(r){if(r.sku&&r.sku!=='-')spScSkus[r.sku]=1;});
+    Object.keys(lapbSp).forEach(function(sku){
+      if(!spScSkus[sku]){
+        S.resSp.push({pid:'-',sku:sku,nm:'',sugg:'',tier:lapbSp[sku],tgtInv:false,expKom:null,smp:null,act:null,status:'no_sc',ok:false,prob:false,warn:true});
+      }
+    });
     S.resSp.sort(function(a,b){return a.sku<b.sku?-1:a.sku>b.sku?1:(a.pid<b.pid?-1:1);});
   }
   if(S.tkRaw.length&&S.tkId){
@@ -740,6 +747,14 @@ function runAudit(){
       var sKom=TK_T2K.hasOwnProperty(sAct)?TK_T2K[sAct]:null;var aKom=TK_T2K.hasOwnProperty(aAct)?TK_T2K[aAct]:null;
       return{pid:pid,sku:sku||'-',nm:nk2?String(r[nk2]||''):'',sugg:(sa.status==='no_lapb'?suggest(sku,tkBody):''),sTier:sa.tier,sTgtInv:sa.tgtInv,sExp:sa.expKom,sSmp:sa.smp,sAct:sa.act,sKom:sKom,sStatus:sa.status,aTier:aa.tier,aTgtInv:aa.tgtInv,aExp:aa.expKom,aSmp:aa.smp,aAct:aa.act,aKom:aKom,aStatus:aa.status,ok:ok,prob:prob,warn:warn};
     });
+    // Detect LAPB SKUs not in TikTok SC
+    var tkScSkus={};S.resTk.forEach(function(r){if(r.sku&&r.sku!=='-')tkScSkus[r.sku]=1;});
+    Object.keys(lapbTk).forEach(function(sku){
+      if(!tkScSkus[sku]){
+        var L=lapbTk[sku];
+        S.resTk.push({pid:'-',sku:sku,nm:'',sugg:'',sTier:L.std,sTgtInv:false,sExp:null,sSmp:null,sAct:null,sKom:null,sStatus:'no_sc',aTier:L.ads,aTgtInv:false,aExp:null,aSmp:null,aAct:null,aKom:null,aStatus:'no_sc',ok:false,prob:false,warn:true});
+      }
+    });
     S.resTk.sort(function(a,b){return a.sku<b.sku?-1:a.sku>b.sku?1:(a.pid<b.pid?-1:1);});
   }
   saveSummary();
@@ -748,7 +763,7 @@ function runAudit(){
 
 function exXl(){
   if(!S.resSp&&!S.resTk)return;
-  var sl={match:'Match',mismatch:'Mismatch',tier_invalid:'Tier tidak valid',target_invalid:'Target LAPB invalid',no_lapb:'SKU tidak ada di LAPB',no_target:'Target LAPB kosong',no_sku:'Product ID tidak ada di mapping',no_comm:'Komisi seller center kosong'};var tgl=new Date().toLocaleDateString('id-ID');var wb=XLSX.utils.book_new();
+  var sl={match:'Match',mismatch:'Mismatch',tier_invalid:'Tier tidak valid',target_invalid:'Target LAPB invalid',no_lapb:'SKU tidak ada di LAPB',no_target:'Target LAPB kosong',no_sku:'Product ID tidak ada di mapping',no_comm:'Komisi seller center kosong',no_sc:'Ada di LAPB tapi tidak di Seller Center'};var tgl=new Date().toLocaleDateString('id-ID');var wb=XLSX.utils.book_new();
   if(S.resSp){var ws1=XLSX.utils.json_to_sheet(S.resSp.map(function(r){return{'Product ID':r.pid,'SKU':r.sku,'Saran SKU':r.sugg,'Nama':r.nm,'Target Tier LAPB (%)':r.tier,'Komisi Diharapkan (%)':r.expKom,'Sampel (%)':r.smp,'Komisi Aktual SC (%)':r.act,'Status':sl[r.status]||r.status,'Audit':tgl};}));XLSX.utils.book_append_sheet(wb,ws1,'Audit Shopee');}
   if(S.resTk){var ws2=XLSX.utils.json_to_sheet(S.resTk.map(function(r){return{'Product ID':r.pid,'SKU':r.sku,'Saran SKU':r.sugg,'Nama':r.nm,'Std Tier LAPB (%)':r.sTier,'Std Komisi Diharapkan (%)':r.sExp,'Std Komisi Aktual (%)':r.sAct,'Status Std':sl[r.sStatus]||r.sStatus,'Ads Tier LAPB (%)':r.aTier,'Ads Komisi Diharapkan (%)':r.aExp,'Ads Komisi Aktual (%)':r.aAct,'Status Ads':sl[r.aStatus]||r.aStatus,'Audit':tgl};}));XLSX.utils.book_append_sheet(wb,ws2,'Audit TikTok');}
   XLSX.writeFile(wb,'audit-komisi-infarm-'+new Date().toISOString().slice(0,10)+'.xlsx');
