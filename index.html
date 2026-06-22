@@ -728,7 +728,7 @@ function runAudit(){
     // Detect LAPB SKUs not in Shopee SC
     var spScSkus={};S.resSp.forEach(function(r){if(r.sku&&r.sku!=='-')spScSkus[r.sku]=1;});
     Object.keys(lapbSp).forEach(function(sku){
-      if(!spScSkus[sku]){
+      if(!spScSkus[sku]&&lapbSp[sku]!==0){
         S.resSp.push({pid:'-',sku:sku,nm:'',sugg:'',tier:lapbSp[sku],tgtInv:false,expKom:null,smp:null,act:null,status:'no_sc',ok:false,prob:false,warn:true});
       }
     });
@@ -752,6 +752,7 @@ function runAudit(){
     Object.keys(lapbTk).forEach(function(sku){
       if(!tkScSkus[sku]){
         var L=lapbTk[sku];
+        if(L.std===0&&L.ads===0) return;
         S.resTk.push({pid:'-',sku:sku,nm:'',sugg:'',sTier:L.std,sTgtInv:false,sExp:null,sSmp:null,sAct:null,sKom:null,sStatus:'no_sc',aTier:L.ads,aTgtInv:false,aExp:null,aSmp:null,aAct:null,aKom:null,aStatus:'no_sc',ok:false,prob:false,warn:true});
       }
     });
