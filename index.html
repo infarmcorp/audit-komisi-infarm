@@ -120,6 +120,11 @@ select:focus,.inp:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 
 .stat .icw svg{width:20px;height:20px;}
 .stat .v{font-size:34px;font-weight:800;letter-spacing:-.03em;font-family:var(--mono);line-height:1;}
 .stat .l{font-size:12.5px;color:var(--mut);margin-top:6px;font-weight:600;}
+.stat.click{cursor:pointer;transition:transform .12s,box-shadow .12s;}
+.stat.click:hover{transform:translateY(-2px);box-shadow:var(--shadow);}
+.stat.click:active{transform:translateY(0);}
+.plat .prow.click{cursor:pointer;border-radius:8px;margin:0 -8px;padding:11px 8px;transition:background .12s;}
+.plat .prow.click:hover{background:var(--surface2);}
 .stat .pct{font-size:11.5px;font-weight:700;margin-top:4px;}
 .stat.tot .icw{background:var(--green-bg);color:var(--green-tx);}
 .stat.ok .icw{background:var(--green-bg);color:var(--green-tx);}.stat.ok .v{color:var(--green-tx);}
@@ -557,9 +562,9 @@ function platCard(name,cls,letter,st,view,live){
     ?'<button class="btn btn-ghost btn-block" onclick="goDetail(\''+view+'\')">'+IC.eye+'Lihat detail</button>'
     :'<button class="btn btn-ghost btn-block" onclick="sw(1)">'+IC.upload+'Upload &amp; audit ulang</button>';
   return '<div class="plat"><div class="ph"><div class="pic '+cls+'">'+letter+'</div><div><div class="pname">'+name+'</div><div class="ptot">'+st.total+' listing · '+pctOk+'% sesuai</div></div></div>'
-    +'<div class="prow"><span class="ll"><i style="background:var(--green)"></i>Sesuai</span><span class="vv" style="color:var(--green-tx)">'+st.match+'</span></div>'
-    +'<div class="prow"><span class="ll"><i style="background:var(--red)"></i>Bermasalah</span><span class="vv" style="color:'+(st.prob?'var(--red-tx)':'var(--mut)')+'">'+st.prob+'</span></div>'
-    +'<div class="prow"><span class="ll"><i style="background:#E8B43B"></i>Perlu cek</span><span class="vv" style="color:'+(st.warn?'var(--amber-tx)':'var(--mut)')+'">'+st.warn+'</span></div>'
+    +'<div class="prow click" onclick="goDetail(\''+view+'\');setTimeout(function(){goFilter(\'match\')},50)"><span class="ll"><i style="background:var(--green)"></i>Sesuai</span><span class="vv" style="color:var(--green-tx)">'+st.match+'</span></div>'
+    +'<div class="prow click" onclick="goDetail(\''+view+'\');setTimeout(function(){goFilter(\'problem\')},50)"><span class="ll"><i style="background:var(--red)"></i>Bermasalah</span><span class="vv" style="color:'+(st.prob?'var(--red-tx)':'var(--mut)')+'">'+st.prob+'</span></div>'
+    +'<div class="prow click" onclick="goDetail(\''+view+'\');setTimeout(function(){goFilter(\'warn\')},50)"><span class="ll"><i style="background:#E8B43B"></i>Perlu cek</span><span class="vv" style="color:'+(st.warn?'var(--amber-tx)':'var(--mut)')+'">'+st.warn+'</span></div>'
     +'<div class="pbtn">'+btn+'</div></div>';
 }
 
@@ -591,10 +596,10 @@ function p_dash(){
     +'<button class="btn btn-primary" onclick="sw(1)">'+IC.search+'Audit baru</button></div>';
 
   html+='<div class="stats">'
-    +'<div class="stat tot"><div class="icw">'+IC.total+'</div><div class="v">'+agg.total+'</div><div class="l">Total listing diaudit</div></div>'
-    +'<div class="stat ok"><div class="icw">'+IC.ok+'</div><div class="v">'+agg.match+'</div><div class="l">Sesuai target</div><div class="pct" style="color:var(--green-tx)">'+pctOk+'% dari total</div></div>'
-    +'<div class="stat prob"><div class="icw">'+IC.alert+'</div><div class="v">'+agg.prob+'</div><div class="l">Bermasalah</div><div class="pct" style="color:var(--red-tx)">perlu diperbaiki di SC</div></div>'
-    +'<div class="stat warn"><div class="icw">'+IC.info+'</div><div class="v">'+agg.warn+'</div><div class="l">Perlu dicek</div><div class="pct" style="color:var(--amber-tx)">data belum lengkap</div></div></div>';
+    +'<div class="stat tot click" onclick="goFilter(\'all\')"><div class="icw">'+IC.total+'</div><div class="v">'+agg.total+'</div><div class="l">Total listing diaudit</div></div>'
+    +'<div class="stat ok click" onclick="goFilter(\'match\')"><div class="icw">'+IC.ok+'</div><div class="v">'+agg.match+'</div><div class="l">Sesuai target</div><div class="pct" style="color:var(--green-tx)">'+pctOk+'% dari total</div></div>'
+    +'<div class="stat prob click" onclick="goFilter(\'problem\')"><div class="icw">'+IC.alert+'</div><div class="v">'+agg.prob+'</div><div class="l">Bermasalah</div><div class="pct" style="color:var(--red-tx)">perlu diperbaiki di SC</div></div>'
+    +'<div class="stat warn click" onclick="goFilter(\'warn\')"><div class="icw">'+IC.info+'</div><div class="v">'+agg.warn+'</div><div class="l">Perlu dicek</div><div class="pct" style="color:var(--amber-tx)">data belum lengkap</div></div></div>';
 
   html+='<div class="health"><div class="hh"><div class="t">Tingkat kesesuaian komisi</div><div class="p">'+pctOk+'%</div></div>'
     +'<div class="bar"><i class="sok" style="width:'+pctOk+'%"></i><i class="swarn" style="width:'+pctWarn+'%"></i><i class="sprob" style="width:'+pctProb+'%"></i></div>'
@@ -606,6 +611,7 @@ function p_dash(){
     +'</div>';
   return html;
 }
+function goFilter(filter){S.filter=filter;S.q='';S.colSt='all';S.colStd='all';S.colAds='all';sw(2);}
 function goDetail(v){S.view=v;S.filter='all';S.q='';S.scope='both';S.colSt='all';S.colStd='all';S.colAds='all';sw(2);}
 
 /* ============ RENDER / NAV ============ */
