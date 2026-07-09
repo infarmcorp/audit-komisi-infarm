@@ -232,9 +232,29 @@ tr.prob:hover td{background:#FAE0E0;}
 .histdetail .hds{font-size:12px;color:var(--mut);margin-bottom:12px;}
 .histtabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
 .histtabs .pill{padding:7px 13px;font-size:12px;}
-.histtable .tblscroll{max-height:460px;}
-.actmini{min-width:220px;min-height:44px;font-size:12px;}
+.histtable .tblscroll{max-height:520px;overflow:auto;}
+.histtable table{table-layout:fixed;width:100%;min-width:920px!important;}
+.histtable th{padding:9px 10px;font-size:10px;letter-spacing:.03em;}
+.histtable td{padding:9px 10px;font-size:12px;vertical-align:middle;}
+.histtable tbody tr:hover td{background:#fff;}
+.histtable .c-prod{width:280px;}.histtable .c-id{width:150px;}.histtable .c-met{width:130px;}.histtable .c-status{width:150px;}.histtable .c-act{width:230px;}
+.hprod{min-width:0;}.hsku{font-family:var(--mono);font-weight:800;font-size:12px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px;}
+.hname{font-size:11.5px;color:var(--mut);line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.hsugg{font-size:11px;color:var(--amber-tx);line-height:1.3;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hpid{font-family:var(--mono);font-size:11.5px;white-space:nowrap;color:var(--ink2);}
+.hmetric{display:flex;flex-direction:column;gap:3px;max-width:130px;}
+.hmetric .mline{display:flex;align-items:center;justify-content:space-between;gap:8px;line-height:1.2;}
+.hmetric .ml{font-size:10.5px;color:var(--mut);font-weight:600;}
+.hmetric .mv{font-size:12px;font-weight:800;color:var(--ink2);font-family:var(--mono);text-align:right;}
+.hmetric .mv.bad{color:var(--red-tx);}.hmetric .mv.ok{color:var(--green-tx);}
+.hstatus{display:flex;flex-direction:column;gap:5px;align-items:flex-start;}
+.hstatus .stline{display:flex;align-items:center;gap:6px;}.hstatus .stlbl{font-size:10.5px;font-weight:800;color:var(--mut);min-width:28px;}
+.histtable .bdg{font-size:10px;padding:3px 8px;max-width:118px;overflow:hidden;text-overflow:ellipsis;}
+.actmini{min-width:0;width:100%;min-height:38px;max-height:76px;font-size:11.5px;padding:7px 9px;resize:vertical;}
+.histlegend{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 10px;color:var(--mut);font-size:11.5px;}
+.histlegend b{color:var(--ink2);}.histlegend .dot{width:7px;height:7px;border-radius:50%;display:inline-block;}
 .syncnote{font-size:11.5px;color:var(--mut);margin-top:5px;}
+@media(max-width:900px){.histtable table{min-width:860px!important;}.histtable .c-prod{width:240px}.histtable .c-id{width:135px}.histtable .c-act{width:210px}}
 
 .subc{font-size:10px;color:var(--mut);margin-top:2px;}
 .r-red{color:var(--red-tx);font-weight:700;}.r-grn{color:var(--green-tx);font-weight:600;}
@@ -977,22 +997,48 @@ function pHistDetail(x,i){
     +'<button class="pill tk'+(v==='tiktok'?' on':'')+'" onclick="setHistView(\'tiktok\')">TikTok ('+tk.length+')</button></div>';
   return '<div class="histdetail"><div class="hdt">Detail hasil audit tersimpan</div><div class="hds">Bisa dilihat langsung di app. Kolom tindakan di sini juga bisa diedit dan tetap tersimpan.</div>'+tabs+pHistTable(v,rows)+'</div>';
 }
+function histPct(v){return (v==null||v==='')?'—':esc(v)+'%';}
+function histBdg(label){
+  var s=String(label||'-'),lc=s.toLowerCase(),cls='b-gray';
+  if(lc.indexOf('match')>-1)cls='b-match';
+  else if(lc.indexOf('tdk perlu')>-1||lc.indexOf('tidak perlu')>-1)cls='b-skip';
+  else if(lc.indexOf('mismatch')>-1||lc.indexOf('salah')>-1||lc.indexOf('kosong')>-1||lc.indexOf('tdk ketemu')>-1||lc.indexOf('mapping')>-1)cls='b-mismatch';
+  else if(lc.indexOf('tdk di')>-1||lc.indexOf('tidak di')>-1||lc.indexOf('lapb')>-1||lc.indexOf('seller center')>-1)cls='b-warn';
+  return '<span class="bdg '+cls+'" title="'+esc(s)+'">'+esc(s)+'</span>';
+}
+function histMetric(lines){
+  return '<div class="hmetric">'+lines.map(function(x){
+    var val=(x[1]==null||x[1]==='')?'—':String(x[1])+(x[2]||'');
+    var cls=x[3]?' '+x[3]:'';
+    return '<div class="mline"><span class="ml">'+esc(x[0])+'</span><span class="mv'+cls+'">'+esc(val)+'</span></div>';
+  }).join('')+'</div>';
+}
+function histProdCell(r){
+  var sku=String(r['SKU']||'-'),nm=String(r['Nama']||''),sg=String(r['Saran SKU']||'');
+  return '<div class="hprod"><div class="hsku" title="'+esc(sku)+'">'+esc(sku)+'</div>'+(nm?'<div class="hname" title="'+esc(nm)+'">'+esc(nm)+'</div>':'')+(sg?'<div class="hsugg" title="'+esc(sg)+'">≈ '+esc(sg)+'</div>':'')+'</div>';
+}
 function pHistTable(platform,rows){
   if(!rows.length)return '<div class="empty" style="padding:28px"><p>Tidak ada data '+(platform==='shopee'?'Shopee':'TikTok')+' di histori ini.</p></div>';
-  var cols=platform==='shopee'
-    ? ['SKU','Product ID','Nama','Target Tier LAPB (%)','Komisi Diharapkan (%)','Komisi Aktual SC (%)','Status','Tindakan']
-    : ['SKU','Product ID','Nama','Std Target LAPB (%)','Std Komisi Diharapkan (%)','Std Komisi Aktual (%)','Status Std','Ads Target LAPB (%)','Ads Komisi Diharapkan (%)','Ads Komisi Aktual (%)','Status Ads','Tindakan'];
-  cols=cols.filter(function(c){return c==='Tindakan'||rows.some(function(r){return Object.prototype.hasOwnProperty.call(r,c);});});
-  var head='<tr>'+cols.map(function(c){return '<th>'+esc(c)+'</th>';}).join('')+'</tr>';
-  var body=rows.map(function(r){
-    return '<tr>'+cols.map(function(c){
-      if(c==='Tindakan')return '<td>'+histActionCell(platform,r)+'</td>';
-      var val=r[c];
-      var cls=(c==='SKU'||c==='Product ID')?' class="mono"':'';
-      return '<td'+cls+'>'+esc(val==null?'':val)+'</td>';
-    }).join('')+'</tr>';
-  }).join('');
-  return '<div class="tblwrap histtable"><div class="tblscroll"><table style="min-width:'+(platform==='shopee'?1100:1500)+'px"><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div><div class="tfoot">Menampilkan '+rows.length+' baris histori '+(platform==='shopee'?'Shopee':'TikTok')+'.</div></div>';
+  var legend='<div class="histlegend"><b>Tampilan ringkas</b><span>Produk dibatasi 2 baris agar mudah dibaca.</span><span><i class="dot" style="background:var(--red)"></i> perlu tindakan</span><span><i class="dot" style="background:#E8B43B"></i> perlu cek</span></div>';
+  var head,body;
+  if(platform==='shopee'){
+    head='<tr><th class="c-prod">Produk</th><th class="c-id">Product ID</th><th class="c-met">Komisi</th><th class="c-status">Status</th><th class="c-act">Tindakan</th></tr>';
+    body=rows.map(function(r){
+      var samp=r['Sampel (%)'];
+      var harus=histPct(r['Komisi Diharapkan (%)'])+(samp?'<span style="font-size:10px;color:var(--mut);font-family:var(--sans)"> + sampel '+esc(samp)+'%</span>':'');
+      var met='<div class="hmetric"><div class="mline"><span class="ml">LAPB</span><span class="mv">'+histPct(r['Target Tier LAPB (%)'])+'</span></div><div class="mline"><span class="ml">Harus</span><span class="mv">'+harus+'</span></div><div class="mline"><span class="ml">SC</span><span class="mv">'+histPct(r['Komisi Aktual SC (%)'])+'</span></div></div>';
+      return '<tr><td>'+histProdCell(r)+'</td><td><div class="hpid">'+esc(r['Product ID']||'-')+'</div></td><td>'+met+'</td><td>'+histBdg(r['Status'])+'</td><td>'+histActionCell(platform,r)+'</td></tr>';
+    }).join('');
+  }else{
+    head='<tr><th class="c-prod">Produk</th><th class="c-id">Product ID</th><th class="c-met">Std</th><th class="c-met">Ads</th><th class="c-status">Status</th><th class="c-act">Tindakan</th></tr>';
+    body=rows.map(function(r){
+      var std=histMetric([['Target',r['Std Target LAPB (%)'],'%'],['SC',r['Std Komisi Aktual (%)'],'%']]);
+      var ads=histMetric([['Target',r['Ads Target LAPB (%)'],'%'],['SC',r['Ads Komisi Aktual (%)'],'%']]);
+      var st='<div class="hstatus"><div class="stline"><span class="stlbl">STD</span>'+histBdg(r['Status Std'])+'</div><div class="stline"><span class="stlbl">ADS</span>'+histBdg(r['Status Ads'])+'</div></div>';
+      return '<tr><td>'+histProdCell(r)+'</td><td><div class="hpid">'+esc(r['Product ID']||'-')+'</div></td><td>'+std+'</td><td>'+ads+'</td><td>'+st+'</td><td>'+histActionCell(platform,r)+'</td></tr>';
+    }).join('');
+  }
+  return legend+'<div class="tblwrap histtable"><div class="tblscroll"><table><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div><div class="tfoot">Menampilkan '+rows.length+' baris histori '+(platform==='shopee'?'Shopee':'TikTok')+'. Detail lengkap tetap ada saat download Excel.</div></div>';
 }
 function downloadHist(i){
   var x=(S.hist||[])[i];if(!x)return;
