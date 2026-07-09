@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Audit Komisi Infarm — Shopee &amp; TikTok</title>
+<!-- Cloud sharing fix v2: form-post + JSONP load/saveAction fallback -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -547,11 +548,11 @@ function needAction(platform,r){return platform==='shopee'?(r.prob||r.warn):(r.p
 function actionCell(platform,r){
   if(!needAction(platform,r))return '<td style="color:var(--mut);text-align:center">—</td>';
   var k=actionKey(platform,r),v=getAction(k);
-  return '<td class="acttd"><textarea class="actbox" placeholder="Tulis tindakan... contoh: Naikkan komisi Std SC ke target" oninput="setAction('+jsq(k)+',this.value)">'+esc(v)+'</textarea></td>';
+  return '<td class="acttd"><textarea class="actbox" placeholder="Tulis tindakan... contoh: Naikkan komisi Std SC ke target" oninput="setAction('+jsq(k)+',this.value)" onchange="setAction('+jsq(k)+',this.value)" onblur="setAction('+jsq(k)+',this.value)">'+esc(v)+'</textarea></td>';
 }
 function histActionCell(platform,r){
   var k=actionKeyFromExport(platform,r),v=getAction(k)||String(r['Tindakan']||'');
-  return '<textarea class="actbox actmini" placeholder="Tulis tindakan..." oninput="setAction('+jsq(k)+',this.value)">'+esc(v)+'</textarea>';
+  return '<textarea class="actbox actmini" placeholder="Tulis tindakan..." oninput="setAction('+jsq(k)+',this.value)" onchange="setAction('+jsq(k)+',this.value)" onblur="setAction('+jsq(k)+',this.value)">'+esc(v)+'</textarea>';
 }
 function rowToExport(platform,r){
   return platform==='shopee'
@@ -606,7 +607,7 @@ function p2(){
   }
   if(!filt.length)rows='<tr><td colspan="'+(S.view==='shopee'?6:9)+'" style="text-align:center;padding:40px;color:var(--mut)">Tidak ada baris cocok dengan filter.</td></tr>';
   return tog+diag+scards(R)+filterBar
-  +(isCloudEnabled()?'<div class="cloudbox">Cloud sync aktif: tindakan & histori dibagikan ke semua user.</div>':'<div class="note amber"><span class="ni">'+IC.info+'</span><div><b>Catatan sharing data:</b> tindakan & histori saat ini tersimpan di browser ini. Agar sama antar orang, isi CLOUD_URL dengan Google Apps Script Web App.</div></div>')
+  +(isCloudEnabled()?'<div class="cloudbox">Cloud sync aktif: tindakan & histori dibagikan ke semua user. Refresh halaman untuk mengambil perubahan terbaru dari user lain.</div>':'<div class="note amber"><span class="ni">'+IC.info+'</span><div><b>Catatan sharing data:</b> tindakan & histori saat ini tersimpan di browser ini. Agar sama antar orang, isi CLOUD_URL dengan Google Apps Script Web App.</div></div>')
   +'<div class="tblwrap"><div class="tblscroll"><table style="min-width:'+mw+'px"><thead>'+head+'</thead><tbody>'+rows+'</tbody></table></div>'
   +'<div class="tfoot">Menampilkan '+filt.length+' dari '+R.length+' listing (Product ID) · baris merah = perlu diperbaiki di seller center</div></div>';
 }
@@ -1004,9 +1005,38 @@ function downloadHist(i){
 }
 function isCloudEnabled(){return !!String(CLOUD_URL||'').trim();}
 function cloudUrl(){return String(CLOUD_URL||'').trim().replace(/\/$/,'');}
+function ensureCloudFrame(){
+  var id='infarm-cloud-frame';
+  var fr=document.getElementById(id);
+  if(!fr){fr=document.createElement('iframe');fr.id=id;fr.name=id;fr.style.display='none';document.body.appendChild(fr);}
+  return id;
+}
 function cloudPost(action,payload){
   var u=cloudUrl();if(!u)return;
-  try{fetch(u+'?action='+encodeURIComponent(action),{method:'POST',mode:'no-cors',body:JSON.stringify(payload||{})});}catch(e){}
+  // Pakai form POST ke iframe tersembunyi agar aman dari kendala CORS Google Apps Script.
+  try{
+    var target=ensureCloudFrame();
+    var f=document.createElement('form');
+    f.method='POST';
+    f.action=u+'?action='+encodeURIComponent(action)+'&_='+(Date.now());
+    f.target=target;
+    f.style.display='none';
+    var inp=document.createElement('input');
+    inp.type='hidden';inp.name='payload';inp.value=JSON.stringify(payload||{});
+    f.appendChild(inp);document.body.appendChild(f);f.submit();
+    setTimeout(function(){try{document.body.removeChild(f);}catch(e){}},3000);
+  }catch(e){
+    // Fallback khusus catatan tindakan: kirim via JSONP GET karena payload-nya kecil.
+    try{
+      if(action==='saveAction'){
+        var data=payload||{},cb='infarmSaveCb_'+Date.now();
+        window[cb]=function(){try{delete window[cb];}catch(err){}};
+        var sc=document.createElement('script');
+        sc.src=u+'?action=saveAction&key='+encodeURIComponent(data.key||'')+'&value='+encodeURIComponent(data.value||'')+'&updatedAt='+encodeURIComponent(data.updatedAt||Date.now())+'&callback='+cb+'&_='+(Date.now());
+        sc.onerror=function(){try{delete window[cb];}catch(err){}};document.body.appendChild(sc);
+      }
+    }catch(e2){}
+  }
 }
 function cloudSaveAction(k,v){cloudPost('saveAction',{key:k,value:v,updatedAt:Date.now()});}
 function cloudSaveSnapshot(snap){cloudPost('saveSnapshot',snap);}
