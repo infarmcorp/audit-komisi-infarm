@@ -219,6 +219,13 @@ tr.prob:hover td{background:#FAE0E0;}
 .empty p{margin:0 0 16px;font-size:14px;}
 .ref{font-size:12px;color:var(--mut);}
 .ref a{color:var(--red-tx);font-weight:600;text-decoration:none;}
+.actbox{min-width:220px;width:100%;min-height:54px;resize:vertical;border:1px solid var(--line2);border-radius:9px;padding:8px 10px;font-family:inherit;font-size:12.5px;background:#fff;color:var(--ink);}
+.actbox:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px var(--green-bg);}
+.acttd{min-width:240px;}
+.histrow{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;margin-bottom:10px;box-shadow:var(--shadow-sm);}
+.histrow .ht{font-weight:800;font-size:14px;}
+.histrow .hs{font-size:12px;color:var(--mut);margin-top:2px;}
+.cloudbox{background:var(--blue-bg);border:1px solid #C6E4F4;border-radius:var(--radius-sm);padding:12px 14px;font-size:12.5px;color:var(--blue-tx);margin-bottom:14px;}
 .subc{font-size:10px;color:var(--mut);margin-top:2px;}
 .r-red{color:var(--red-tx);font-weight:700;}.r-grn{color:var(--green-tx);font-weight:600;}
 
@@ -345,13 +352,16 @@ var IC={
 /* ============ TIER TABLES ============ */
 var SP_T2K={0:0,5:5,7:5,11:9},SP_T2S={0:0,5:0,7:2,11:2},SP_TIER=[0,5,7,11];
 var TK_T2K={0:0,1:1,3:3,5:5,7:5,10:8},TK_T2S={0:0,1:0,3:0,5:0,7:2,10:2},TK_TIER=[0,1,3,5,7,10];
-var LS='infarm-audit-map-v2',LSUM='infarm-audit-summary-v1';
+var LS='infarm-audit-map-v2',LSUM='infarm-audit-summary-v1',LSA='infarm-audit-actions-v1',LSH='infarm-audit-history-v1';
+// Opsional agar tindakan & histori sama antar user: isi dengan URL Google Apps Script Web App.
+var CLOUD_URL='';
 
 var NAV=[
   {id:'dash',ic:'dash',t:'Dashboard',sub:'Ringkasan audit komisi terakhir'},
   {id:0,ic:'map',t:'Mapping SKU',sub:'Cocokkan Product ID Shopee &amp; TikTok dengan SKU'},
   {id:1,ic:'upload',t:'Upload Data',sub:'Upload LAPB &amp; data komisi seller center'},
   {id:2,ic:'result',t:'Hasil Audit',sub:'Perbandingan target LAPB vs komisi aktual'},
+  {id:'hist',ic:'save',t:'Histori Audit',sub:'Riwayat hasil audit & tindakan per SKU'},
   {id:3,ic:'clean',t:'Rapikan Kolom',sub:'Buang kolom Excel yang tidak perlu'}
 ];
 
@@ -362,7 +372,7 @@ var S={tab:'dash',view:'shopee',filter:'all',q:'',scope:'both',colSt:'all',colSt
   ltFile:'',ltSku:'',ltComm:'',ltAds:'',ltRaw:[],
   spFile:'',spId:'',spComm:'',spRaw:[],
   tkFile:'',tkId:'',tkStd:'',tkAds:'',tkRaw:[],
-  resSp:null,resTk:null,summary:null,clFile:'',clKeep:{},clFilter:'',_clKeys:[]};
+  resSp:null,resTk:null,summary:null,actions:{},hist:[],clFile:'',clKeep:{},clFilter:'',_clKeys:[]};
 
 var esc=function(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};
 var up=function(v){return String(v==null?'':v).trim().toUpperCase();};
@@ -411,6 +421,7 @@ var STAT_OPTS=[['all','Semua'],['match','Match'],['mismatch','Mismatch'],['tier_
 function hfiltHtml(id,val,fn){var arrow='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';return '<span class="hf-wrap'+(val!=='all'?' active':'')+'"><span class="hf-arrow">'+arrow+'</span><select class="hfilt" onchange="'+fn+'(this.value)">'+STAT_OPTS.map(function(o){return '<option value="'+o[0]+'"'+(val===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('')+'</select></span>';}
 var STAT={match:['Match','b-match'],mismatch:['Mismatch','b-mismatch'],tier_invalid:['Tier salah','b-tier'],target_invalid:['LAPB salah','b-warn'],no_lapb:['Tdk di LAPB','b-warn'],no_target:['LAPB kosong','b-gray'],no_sku:['SKU tdk ketemu','b-gray'],no_comm:['Komisi kosong','b-gray'],no_sc:['Tdk di SC','b-warn'],skip_zero:['Tdk perlu setting','b-skip']};
 var bge=function(st){var c=STAT[st]||STAT.no_sku;return '<span class="bdg '+c[1]+'">'+c[0]+'</span>';};
+function statusLabel(st){var c=STAT[st];return c?c[0]:st;}
 var sopts=function(keys,sel){var h='<option value="">— kolom —</option>';keys.forEach(function(k){h+='<option value="'+esc(k)+'"'+(k===sel?' selected':'')+'>'+esc(k)+'</option>';});return h;};
 var psel=function(id,keys,sel){var el=document.getElementById(id);if(el)el.innerHTML=sopts(keys,sel);};
 var WARN=['no_lapb','no_target','no_sku','no_comm','target_invalid','no_sc'],PROB=['mismatch'];
@@ -496,6 +507,23 @@ function flagsOf(r){
 }
 function matchQ(r){var q=(S.q||'').trim().toLowerCase();if(!q)return true;return String(r.sku).toLowerCase().indexOf(q)>-1||String(r.pid).toLowerCase().indexOf(q)>-1||String(r.nm||'').toLowerCase().indexOf(q)>-1;}
 
+function jsq(s){return JSON.stringify(String(s==null?'':s));}
+function actionKey(platform,r){return platform+'|'+String(r.sku||'-')+'|'+String(r.pid||'-');}
+function getAction(k){return (S.actions&&S.actions[k])?S.actions[k]:'';}
+function saveActionsLocal(){try{localStorage.setItem(LSA,JSON.stringify(S.actions||{}));}catch(e){}}
+function setAction(k,v){if(!S.actions)S.actions={};S.actions[k]=v||'';saveActionsLocal();cloudSaveAction(k,v||'');}
+function needAction(platform,r){return platform==='shopee'?(r.prob||r.warn):(r.prob||r.warn);}
+function actionCell(platform,r){
+  if(!needAction(platform,r))return '<td style="color:var(--mut);text-align:center">—</td>';
+  var k=actionKey(platform,r),v=getAction(k);
+  return '<td class="acttd"><textarea class="actbox" placeholder="Tulis tindakan... contoh: Naikkan komisi Std SC ke target" oninput="setAction('+jsq(k)+',this.value)">'+esc(v)+'</textarea></td>';
+}
+function rowToExport(platform,r){
+  return platform==='shopee'
+    ? {'Product ID':r.pid,'SKU':r.sku,'Saran SKU':r.sugg,'Nama':r.nm,'Target Tier LAPB (%)':r.tier,'Komisi Diharapkan (%)':r.expKom,'Sampel (%)':r.smp,'Komisi Aktual SC (%)':r.act,'Status':statusLabel(r.status),'Tindakan':getAction(actionKey('shopee',r))}
+    : {'Product ID':r.pid,'SKU':r.sku,'Saran SKU':r.sugg,'Nama':r.nm,'Std Target LAPB (%)':r.sTier,'Std Komisi Diharapkan (%)':r.sExp,'Std Komisi Aktual (%)':r.sAct,'Status Std':statusLabel(r.sStatus),'Ads Target LAPB (%)':r.aTier,'Ads Komisi Diharapkan (%)':r.aExp,'Ads Komisi Aktual (%)':r.aAct,'Status Ads':statusLabel(r.aStatus),'Tindakan':getAction(actionKey('tiktok',r))};
+}
+
 function statsOf(R){var t=R.length,m=0,p=0,w=0;R.forEach(function(r){if(r.ok)m++;if(r.prob)p++;if(r.warn)w++;});return{total:t,match:m,prob:p,warn:w};}
 
 function scards(R){
@@ -535,14 +563,15 @@ function p2(){
   var nmcell=function(r){var sub=(r.nm?'<div class="subc">'+esc(r.nm)+'</div>':'')+(r.sugg?'<div class="subc" style="color:var(--amber-tx)">&#8776; '+esc(r.sugg)+' ?</div>':'');return '<td><div class="mono" style="font-weight:600">'+esc(r.sku)+'</div>'+sub+'</td>';};
   var head,rows,mw;
   if(S.view==='shopee'){
-    mw=640;head='<tr><th>SKU</th><th>Product ID</th><th style="text-align:right">Target (LAPB)</th><th style="text-align:right">Komisi SC</th><th style="text-align:center"><span style="display:inline-flex;align-items:center">Status'+hfiltHtml('colSt',S.colSt,'setColSt')+'</span></th></tr>';
-    rows=filt.map(function(r){return '<tr class="'+(r.prob?'prob':'')+'">'+nmcell(r)+'<td class="mono">'+esc(r.pid)+'</td>'+tgtCell(r.tier,r.expKom,r.smp,r.status)+actCell(r.status,r.act)+'<td style="text-align:center">'+bge(r.status)+'</td></tr>';}).join('');
+    mw=900;head='<tr><th>SKU</th><th>Product ID</th><th style="text-align:right">Target (LAPB)</th><th style="text-align:right">Komisi SC</th><th style="text-align:center"><span style="display:inline-flex;align-items:center">Status'+hfiltHtml('colSt',S.colSt,'setColSt')+'</span></th><th>Tindakan</th></tr>';
+    rows=filt.map(function(r){return '<tr class="'+(r.prob?'prob':'')+'">'+nmcell(r)+'<td class="mono">'+esc(r.pid)+'</td>'+tgtCell(r.tier,r.expKom,r.smp,r.status)+actCell(r.status,r.act)+'<td style="text-align:center">'+bge(r.status)+'</td>'+actionCell('shopee',r)+'</tr>';}).join('');
   }else{
-    mw=820;head='<tr><th>SKU</th><th>Product ID</th><th style="text-align:right">Std target</th><th style="text-align:right">Std SC</th><th style="text-align:center"><span style="display:inline-flex;align-items:center">Status Std'+hfiltHtml('colStd',S.colStd,'setColStd')+'</span></th><th style="text-align:right">Ads target</th><th style="text-align:right">Ads SC</th><th style="text-align:center"><span style="display:inline-flex;align-items:center">Status Ads'+hfiltHtml('colAds',S.colAds,'setColAds')+'</span></th></tr>';
-    rows=filt.map(function(r){return '<tr class="'+(r.prob?'prob':'')+'">'+nmcell(r)+'<td class="mono">'+esc(r.pid)+'</td>'+tgtCell(r.sTier,r.sExp,r.sSmp,r.sStatus)+actCell(r.sStatus,r.sAct)+'<td style="text-align:center">'+bge(r.sStatus)+'</td>'+tgtCell(r.aTier,r.aExp,r.aSmp,r.aStatus)+actCell(r.aStatus,r.aAct)+'<td style="text-align:center">'+bge(r.aStatus)+'</td></tr>';}).join('');
+    mw=1120;head='<tr><th>SKU</th><th>Product ID</th><th style="text-align:right">Std target</th><th style="text-align:right">Std SC</th><th style="text-align:center"><span style="display:inline-flex;align-items:center">Status Std'+hfiltHtml('colStd',S.colStd,'setColStd')+'</span></th><th style="text-align:right">Ads target</th><th style="text-align:right">Ads SC</th><th style="text-align:center"><span style="display:inline-flex;align-items:center">Status Ads'+hfiltHtml('colAds',S.colAds,'setColAds')+'</span></th><th>Tindakan</th></tr>';
+    rows=filt.map(function(r){return '<tr class="'+(r.prob?'prob':'')+'">'+nmcell(r)+'<td class="mono">'+esc(r.pid)+'</td>'+tgtCell(r.sTier,r.sExp,r.sSmp,r.sStatus)+actCell(r.sStatus,r.sAct)+'<td style="text-align:center">'+bge(r.sStatus)+'</td>'+tgtCell(r.aTier,r.aExp,r.aSmp,r.aStatus)+actCell(r.aStatus,r.aAct)+'<td style="text-align:center">'+bge(r.aStatus)+'</td>'+actionCell('tiktok',r)+'</tr>';}).join('');
   }
-  if(!filt.length)rows='<tr><td colspan="'+(S.view==='shopee'?5:8)+'" style="text-align:center;padding:40px;color:var(--mut)">Tidak ada baris cocok dengan filter.</td></tr>';
+  if(!filt.length)rows='<tr><td colspan="'+(S.view==='shopee'?6:9)+'" style="text-align:center;padding:40px;color:var(--mut)">Tidak ada baris cocok dengan filter.</td></tr>';
   return tog+diag+scards(R)+filterBar
+  +(CLOUD_URL?'<div class="cloudbox">Cloud sync aktif: tindakan & histori dibagikan ke semua user.</div>':'<div class="note amber"><span class="ni">'+IC.info+'</span><div><b>Catatan sharing data:</b> tindakan & histori saat ini tersimpan di browser ini. Agar sama antar orang, isi CLOUD_URL dengan Google Apps Script Web App.</div></div>')
   +'<div class="tblwrap"><div class="tblscroll"><table style="min-width:'+mw+'px"><thead>'+head+'</thead><tbody>'+rows+'</tbody></table></div>'
   +'<div class="tfoot">Menampilkan '+filt.length+' dari '+R.length+' listing (Product ID) · baris merah = perlu diperbaiki di seller center</div></div>';
 }
@@ -660,7 +689,7 @@ function updateTop(){
 }
 
 function rc(){var el=document.getElementById('content');if(!el)return;
-  el.innerHTML=S.tab==='dash'?p_dash():S.tab===0?p0():S.tab===1?p1():S.tab===2?p2():p3();
+  el.innerHTML=S.tab==='dash'?p_dash():S.tab===0?p0():S.tab===1?p1():S.tab===2?p2():S.tab==='hist'?pHist():p3();
   if(S.tab===0){if(S.src.ms)applySlot('ms');if(S.src.mt)applySlot('mt');rsvMap();}
   if(S.tab===1){['ls','sp','lt','tk'].forEach(function(id){if(S.src[id])applySlot(id);});}
   if(S.tab===3){if(S.src.cl){fillClSheet();var cle=document.getElementById('cl-list');if(cle)cle.innerHTML=buildClList();updateClCount();}}
@@ -849,15 +878,65 @@ function runAudit(){
     S.resTk.sort(function(a,b){return a.sku<b.sku?-1:a.sku>b.sku?1:(a.pid<b.pid?-1:1);});
   }
   saveSummary();
+  saveAuditHistory();
   S.view=S.resSp?'shopee':'tiktok';S.filter='all';sw(2);
 }
 
 function exXl(){
   if(!S.resSp&&!S.resTk)return;
   var sl={match:'Match',mismatch:'Mismatch',tier_invalid:'Tier tidak valid',target_invalid:'Target LAPB invalid',no_lapb:'SKU tidak ada di LAPB',no_target:'Target LAPB kosong',no_sku:'Product ID tidak ada di mapping',no_comm:'Komisi seller center kosong',no_sc:'Ada di LAPB tapi tidak di Seller Center',skip_zero:'Target 0% - tidak perlu setting'};var tgl=new Date().toLocaleDateString('id-ID');var wb=XLSX.utils.book_new();
-  if(S.resSp){var ws1=XLSX.utils.json_to_sheet(S.resSp.map(function(r){return{'Product ID':r.pid,'SKU':r.sku,'Saran SKU':r.sugg,'Nama':r.nm,'Target Tier LAPB (%)':r.tier,'Komisi Diharapkan (%)':r.expKom,'Sampel (%)':r.smp,'Komisi Aktual SC (%)':r.act,'Status':sl[r.status]||r.status,'Audit':tgl};}));XLSX.utils.book_append_sheet(wb,ws1,'Audit Shopee');}
-  if(S.resTk){var ws2=XLSX.utils.json_to_sheet(S.resTk.map(function(r){return{'Product ID':r.pid,'SKU':r.sku,'Saran SKU':r.sugg,'Nama':r.nm,'Std Target LAPB (%)':r.sTier,'Std Komisi Diharapkan (%)':r.sExp,'Std Komisi Aktual (%)':r.sAct,'Status Std':sl[r.sStatus]||r.sStatus,'Ads Target LAPB (%)':r.aTier,'Ads Komisi Diharapkan (%)':r.aExp,'Ads Komisi Aktual (%)':r.aAct,'Status Ads':sl[r.aStatus]||r.aStatus,'Audit':tgl};}));XLSX.utils.book_append_sheet(wb,ws2,'Audit TikTok');}
+  if(S.resSp){var ws1=XLSX.utils.json_to_sheet(S.resSp.map(function(r){var o=rowToExport('shopee',r);o.Audit=tgl;return o;}));XLSX.utils.book_append_sheet(wb,ws1,'Audit Shopee');}
+  if(S.resTk){var ws2=XLSX.utils.json_to_sheet(S.resTk.map(function(r){var o=rowToExport('tiktok',r);o.Audit=tgl;return o;}));XLSX.utils.book_append_sheet(wb,ws2,'Audit TikTok');}
   XLSX.writeFile(wb,'audit-komisi-infarm-'+new Date().toISOString().slice(0,10)+'.xlsx');
+}
+
+
+function makeSnapshot(){
+  var tgl=new Date().toISOString();
+  var sp=S.resSp?S.resSp.map(function(r){return rowToExport('shopee',r);}):[];
+  var tk=S.resTk?S.resTk.map(function(r){return rowToExport('tiktok',r);}):[];
+  return {id:'AUD-'+tgl.replace(/[-:TZ.]/g,'').slice(0,14),ts:Date.now(),summary:S.summary||{},sp:sp,tk:tk};
+}
+function saveAuditHistory(){
+  var snap=makeSnapshot();
+  S.hist=[snap].concat((S.hist||[]).filter(function(h){return h.id!==snap.id;})).slice(0,15);
+  try{localStorage.setItem(LSH,JSON.stringify(S.hist));}catch(e){}
+  cloudSaveSnapshot(snap);
+}
+function pHist(){
+  var h=S.hist||[];
+  var cloud=CLOUD_URL?'<div class="cloudbox">Cloud sync aktif. Histori terbaru diambil dari Google Sheet saat app dibuka.</div>':'<div class="note amber"><span class="ni">'+IC.info+'</span><div><b>Belum cloud.</b> Histori ini masih lokal di browser. Untuk data sama antar orang, pakai file Apps Script yang aku lampirkan dan isi CLOUD_URL di index.html.</div></div>';
+  if(!h.length)return cloud+'<div class="empty"><div class="eic">'+IC.save+'</div><p>Belum ada histori audit. Jalankan audit dulu, nanti hasilnya otomatis tersimpan di sini.</p></div>';
+  return cloud+h.map(function(x,i){
+    var dt=new Date(x.ts).toLocaleString('id-ID',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    var spn=(x.sp||[]).length,tkn=(x.tk||[]).length;
+    return '<div class="histrow"><div><div class="ht">'+esc(x.id)+'</div><div class="hs">'+dt+' WIB · Shopee '+spn+' baris · TikTok '+tkn+' baris</div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-ghost" onclick="downloadHist('+i+')">Download Excel</button></div></div>';
+  }).join('');
+}
+function downloadHist(i){
+  var x=(S.hist||[])[i];if(!x)return;
+  var wb=XLSX.utils.book_new();
+  if((x.sp||[]).length)XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(x.sp),'Audit Shopee');
+  if((x.tk||[]).length)XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(x.tk),'Audit TikTok');
+  XLSX.writeFile(wb,(x.id||'audit-history')+'.xlsx');
+}
+function cloudPost(action,payload){
+  if(!CLOUD_URL)return;
+  try{fetch(CLOUD_URL+'?action='+encodeURIComponent(action),{method:'POST',mode:'no-cors',body:JSON.stringify(payload||{})});}catch(e){}
+}
+function cloudSaveAction(k,v){cloudPost('saveAction',{key:k,value:v,updatedAt:Date.now()});}
+function cloudSaveSnapshot(snap){cloudPost('saveSnapshot',snap);}
+function cloudLoad(){
+  if(!CLOUD_URL)return;
+  var cb='infarmCloudCb_'+Date.now();
+  window[cb]=function(data){
+    try{
+      if(data&&data.actions){S.actions=Object.assign({},S.actions||{},data.actions);saveActionsLocal();}
+      if(data&&Array.isArray(data.history)){S.hist=data.history.concat(S.hist||[]).slice(0,15);try{localStorage.setItem(LSH,JSON.stringify(S.hist));}catch(e){}}
+      rc();
+    }finally{try{delete window[cb];}catch(e){window[cb]=null;}}
+  };
+  var sc=document.createElement('script');sc.src=CLOUD_URL+'?action=loadAll&callback='+cb+'&_='+(Date.now());sc.onerror=function(){try{delete window[cb];}catch(e){}};document.body.appendChild(sc);
 }
 
 /* ============ PAGE: RAPIKAN KOLOM ============ */
@@ -894,7 +973,9 @@ function clDownload(){var src=S.src.cl;if(!src)return;var rows=src.sheets[src.sh
 (function init(){
   try{var r=localStorage.getItem(LS);if(r){var o=JSON.parse(r);if(o&&!Array.isArray(o)){S.mapSp=o.sp||[];S.mapTk=o.tk||[];}}}catch(e){}
   try{var s=localStorage.getItem(LSUM);if(s){var so=JSON.parse(s);if(so&&so.ts)S.summary=so;}}catch(e){}
-  buildNav();rc();
+  try{var a=localStorage.getItem(LSA);if(a)S.actions=JSON.parse(a)||{};}catch(e){}
+  try{var h=localStorage.getItem(LSH);if(h)S.hist=JSON.parse(h)||[];}catch(e){}
+  buildNav();rc();cloudLoad();
 })();
 </script>
 
