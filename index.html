@@ -226,6 +226,15 @@ tr.prob:hover td{background:#FAE0E0;}
 .histrow .ht{font-weight:800;font-size:14px;}
 .histrow .hs{font-size:12px;color:var(--mut);margin-top:2px;}
 .cloudbox{background:var(--blue-bg);border:1px solid #C6E4F4;border-radius:var(--radius-sm);padding:12px 14px;font-size:12.5px;color:var(--blue-tx);margin-bottom:14px;}
+.histdetail{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin:8px 0 16px;box-shadow:var(--shadow-sm);}
+.histdetail .hdt{font-size:13px;font-weight:800;margin-bottom:3px;}
+.histdetail .hds{font-size:12px;color:var(--mut);margin-bottom:12px;}
+.histtabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+.histtabs .pill{padding:7px 13px;font-size:12px;}
+.histtable .tblscroll{max-height:460px;}
+.actmini{min-width:220px;min-height:44px;font-size:12px;}
+.syncnote{font-size:11.5px;color:var(--mut);margin-top:5px;}
+
 .subc{font-size:10px;color:var(--mut);margin-top:2px;}
 .r-red{color:var(--red-tx);font-weight:700;}.r-grn{color:var(--green-tx);font-weight:600;}
 
@@ -372,7 +381,7 @@ var S={tab:'dash',view:'shopee',filter:'all',q:'',scope:'both',colSt:'all',colSt
   ltFile:'',ltSku:'',ltComm:'',ltAds:'',ltRaw:[],
   spFile:'',spId:'',spComm:'',spRaw:[],
   tkFile:'',tkId:'',tkStd:'',tkAds:'',tkRaw:[],
-  resSp:null,resTk:null,summary:null,actions:{},hist:[],clFile:'',clKeep:{},clFilter:'',_clKeys:[]};
+  resSp:null,resTk:null,summary:null,actions:{},hist:[],histOpen:-1,histView:'tiktok',clFile:'',clKeep:{},clFilter:'',_clKeys:[]};
 
 var esc=function(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};
 var up=function(v){return String(v==null?'':v).trim().toUpperCase();};
@@ -509,14 +518,40 @@ function matchQ(r){var q=(S.q||'').trim().toLowerCase();if(!q)return true;return
 
 function jsq(s){return JSON.stringify(String(s==null?'':s));}
 function actionKey(platform,r){return platform+'|'+String(r.sku||'-')+'|'+String(r.pid||'-');}
-function getAction(k){return (S.actions&&S.actions[k])?S.actions[k]:'';}
+function actionKeyFromExport(platform,r){return platform+'|'+String(r['SKU']||r.sku||'-')+'|'+String(r['Product ID']||r.pid||'-');}
+function getAction(k){return (S.actions&&Object.prototype.hasOwnProperty.call(S.actions,k))?S.actions[k]:'';}
 function saveActionsLocal(){try{localStorage.setItem(LSA,JSON.stringify(S.actions||{}));}catch(e){}}
-function setAction(k,v){if(!S.actions)S.actions={};S.actions[k]=v||'';saveActionsLocal();cloudSaveAction(k,v||'');}
+function saveHistoryLocal(){try{localStorage.setItem(LSH,JSON.stringify(S.hist||[]));}catch(e){}}
+function applyActionToHistory(k,v){
+  if(!S.hist||!S.hist.length)return;
+  S.hist.forEach(function(h){
+    [['shopee','sp'],['tiktok','tk']].forEach(function(pair){
+      var platform=pair[0],prop=pair[1];
+      (h[prop]||[]).forEach(function(row){
+        if(actionKeyFromExport(platform,row)===k)row['Tindakan']=v||'';
+      });
+    });
+  });
+}
+var _actTimer={};
+function setAction(k,v){
+  if(!S.actions)S.actions={};
+  S.actions[k]=v||'';
+  saveActionsLocal();
+  applyActionToHistory(k,v||'');
+  saveHistoryLocal();
+  if(_actTimer[k])clearTimeout(_actTimer[k]);
+  _actTimer[k]=setTimeout(function(){cloudSaveAction(k,v||'');},450);
+}
 function needAction(platform,r){return platform==='shopee'?(r.prob||r.warn):(r.prob||r.warn);}
 function actionCell(platform,r){
   if(!needAction(platform,r))return '<td style="color:var(--mut);text-align:center">—</td>';
   var k=actionKey(platform,r),v=getAction(k);
   return '<td class="acttd"><textarea class="actbox" placeholder="Tulis tindakan... contoh: Naikkan komisi Std SC ke target" oninput="setAction('+jsq(k)+',this.value)">'+esc(v)+'</textarea></td>';
+}
+function histActionCell(platform,r){
+  var k=actionKeyFromExport(platform,r),v=getAction(k)||String(r['Tindakan']||'');
+  return '<textarea class="actbox actmini" placeholder="Tulis tindakan..." oninput="setAction('+jsq(k)+',this.value)">'+esc(v)+'</textarea>';
 }
 function rowToExport(platform,r){
   return platform==='shopee'
@@ -571,7 +606,7 @@ function p2(){
   }
   if(!filt.length)rows='<tr><td colspan="'+(S.view==='shopee'?6:9)+'" style="text-align:center;padding:40px;color:var(--mut)">Tidak ada baris cocok dengan filter.</td></tr>';
   return tog+diag+scards(R)+filterBar
-  +(CLOUD_URL?'<div class="cloudbox">Cloud sync aktif: tindakan & histori dibagikan ke semua user.</div>':'<div class="note amber"><span class="ni">'+IC.info+'</span><div><b>Catatan sharing data:</b> tindakan & histori saat ini tersimpan di browser ini. Agar sama antar orang, isi CLOUD_URL dengan Google Apps Script Web App.</div></div>')
+  +(isCloudEnabled()?'<div class="cloudbox">Cloud sync aktif: tindakan & histori dibagikan ke semua user.</div>':'<div class="note amber"><span class="ni">'+IC.info+'</span><div><b>Catatan sharing data:</b> tindakan & histori saat ini tersimpan di browser ini. Agar sama antar orang, isi CLOUD_URL dengan Google Apps Script Web App.</div></div>')
   +'<div class="tblwrap"><div class="tblscroll"><table style="min-width:'+mw+'px"><thead>'+head+'</thead><tbody>'+rows+'</tbody></table></div>'
   +'<div class="tfoot">Menampilkan '+filt.length+' dari '+R.length+' listing (Product ID) · baris merah = perlu diperbaiki di seller center</div></div>';
 }
@@ -900,43 +935,92 @@ function makeSnapshot(){
 function saveAuditHistory(){
   var snap=makeSnapshot();
   S.hist=[snap].concat((S.hist||[]).filter(function(h){return h.id!==snap.id;})).slice(0,15);
-  try{localStorage.setItem(LSH,JSON.stringify(S.hist));}catch(e){}
+  saveHistoryLocal();
+  S.histOpen=-1;
   cloudSaveSnapshot(snap);
+}
+
+function mergeHistory(){
+  var seen={},out=[];
+  for(var a=0;a<arguments.length;a++){
+    (arguments[a]||[]).forEach(function(h){if(!h||!h.id||seen[h.id])return;seen[h.id]=1;out.push(h);});
+  }
+  out.sort(function(a,b){return (b.ts||0)-(a.ts||0);});
+  return out.slice(0,15);
 }
 function pHist(){
   var h=S.hist||[];
-  var cloud=CLOUD_URL?'<div class="cloudbox">Cloud sync aktif. Histori terbaru diambil dari Google Sheet saat app dibuka.</div>':'<div class="note amber"><span class="ni">'+IC.info+'</span><div><b>Belum cloud.</b> Histori ini masih lokal di browser. Untuk data sama antar orang, pakai file Apps Script yang aku lampirkan dan isi CLOUD_URL di index.html.</div></div>';
+  var cloud=isCloudEnabled()?'<div class="cloudbox">Cloud sync aktif. Tindakan & histori terbaru diambil dari Google Sheet saat app dibuka.<div class="syncnote">Kalau orang lain baru mengubah tindakan, refresh halaman untuk mengambil update terbaru.</div></div>':'<div class="note amber"><span class="ni">'+IC.info+'</span><div><b>Belum cloud.</b> Histori ini masih lokal di browser. Kalau file sudah diisi CLOUD_URL tapi masih muncul pesan ini, biasanya GitHub belum ter-commit/ter-deploy atau halaman masih cache.</div></div>';
   if(!h.length)return cloud+'<div class="empty"><div class="eic">'+IC.save+'</div><p>Belum ada histori audit. Jalankan audit dulu, nanti hasilnya otomatis tersimpan di sini.</p></div>';
   return cloud+h.map(function(x,i){
     var dt=new Date(x.ts).toLocaleString('id-ID',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
     var spn=(x.sp||[]).length,tkn=(x.tk||[]).length;
-    return '<div class="histrow"><div><div class="ht">'+esc(x.id)+'</div><div class="hs">'+dt+' WIB · Shopee '+spn+' baris · TikTok '+tkn+' baris</div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-ghost" onclick="downloadHist('+i+')">Download Excel</button></div></div>';
+    var open=S.histOpen===i;
+    return '<div class="histrow"><div><div class="ht">'+esc(x.id)+'</div><div class="hs">'+dt+' WIB · Shopee '+spn+' baris · TikTok '+tkn+' baris</div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-ghost" onclick="toggleHist('+i+')">'+(open?'Tutup':'Lihat hasil')+'</button><button class="btn btn-ghost" onclick="downloadHist('+i+')">Download Excel</button></div></div>'+(open?pHistDetail(x,i):'');
   }).join('');
+}
+function toggleHist(i){
+  S.histOpen=(S.histOpen===i)?-1:i;
+  var x=(S.hist||[])[i];
+  if(x){S.histView=(x.tk||[]).length?'tiktok':'shopee';}
+  rc();
+}
+function setHistView(v){S.histView=v;rc();}
+function pHistDetail(x,i){
+  var sp=(x.sp||[]),tk=(x.tk||[]),v=S.histView||((tk.length)?'tiktok':'shopee');
+  if(v==='tiktok'&&!tk.length)v='shopee';
+  if(v==='shopee'&&!sp.length)v='tiktok';
+  var rows=v==='shopee'?sp:tk;
+  var tabs='<div class="histtabs">'
+    +'<button class="pill sp'+(v==='shopee'?' on':'')+'" onclick="setHistView(\'shopee\')">Shopee ('+sp.length+')</button>'
+    +'<button class="pill tk'+(v==='tiktok'?' on':'')+'" onclick="setHistView(\'tiktok\')">TikTok ('+tk.length+')</button></div>';
+  return '<div class="histdetail"><div class="hdt">Detail hasil audit tersimpan</div><div class="hds">Bisa dilihat langsung di app. Kolom tindakan di sini juga bisa diedit dan tetap tersimpan.</div>'+tabs+pHistTable(v,rows)+'</div>';
+}
+function pHistTable(platform,rows){
+  if(!rows.length)return '<div class="empty" style="padding:28px"><p>Tidak ada data '+(platform==='shopee'?'Shopee':'TikTok')+' di histori ini.</p></div>';
+  var cols=platform==='shopee'
+    ? ['SKU','Product ID','Nama','Target Tier LAPB (%)','Komisi Diharapkan (%)','Komisi Aktual SC (%)','Status','Tindakan']
+    : ['SKU','Product ID','Nama','Std Target LAPB (%)','Std Komisi Diharapkan (%)','Std Komisi Aktual (%)','Status Std','Ads Target LAPB (%)','Ads Komisi Diharapkan (%)','Ads Komisi Aktual (%)','Status Ads','Tindakan'];
+  cols=cols.filter(function(c){return c==='Tindakan'||rows.some(function(r){return Object.prototype.hasOwnProperty.call(r,c);});});
+  var head='<tr>'+cols.map(function(c){return '<th>'+esc(c)+'</th>';}).join('')+'</tr>';
+  var body=rows.map(function(r){
+    return '<tr>'+cols.map(function(c){
+      if(c==='Tindakan')return '<td>'+histActionCell(platform,r)+'</td>';
+      var val=r[c];
+      var cls=(c==='SKU'||c==='Product ID')?' class="mono"':'';
+      return '<td'+cls+'>'+esc(val==null?'':val)+'</td>';
+    }).join('')+'</tr>';
+  }).join('');
+  return '<div class="tblwrap histtable"><div class="tblscroll"><table style="min-width:'+(platform==='shopee'?1100:1500)+'px"><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div><div class="tfoot">Menampilkan '+rows.length+' baris histori '+(platform==='shopee'?'Shopee':'TikTok')+'.</div></div>';
 }
 function downloadHist(i){
   var x=(S.hist||[])[i];if(!x)return;
   var wb=XLSX.utils.book_new();
-  if((x.sp||[]).length)XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(x.sp),'Audit Shopee');
-  if((x.tk||[]).length)XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(x.tk),'Audit TikTok');
+  var sp=(x.sp||[]).map(function(r){var o=Object.assign({},r);o['Tindakan']=getAction(actionKeyFromExport('shopee',r))||o['Tindakan']||'';return o;});
+  var tk=(x.tk||[]).map(function(r){var o=Object.assign({},r);o['Tindakan']=getAction(actionKeyFromExport('tiktok',r))||o['Tindakan']||'';return o;});
+  if(sp.length)XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(sp),'Audit Shopee');
+  if(tk.length)XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(tk),'Audit TikTok');
   XLSX.writeFile(wb,(x.id||'audit-history')+'.xlsx');
 }
+function isCloudEnabled(){return !!String(CLOUD_URL||'').trim();}
+function cloudUrl(){return String(CLOUD_URL||'').trim().replace(/\/$/,'');}
 function cloudPost(action,payload){
-  if(!CLOUD_URL)return;
-  try{fetch(CLOUD_URL+'?action='+encodeURIComponent(action),{method:'POST',mode:'no-cors',body:JSON.stringify(payload||{})});}catch(e){}
+  var u=cloudUrl();if(!u)return;
+  try{fetch(u+'?action='+encodeURIComponent(action),{method:'POST',mode:'no-cors',body:JSON.stringify(payload||{})});}catch(e){}
 }
 function cloudSaveAction(k,v){cloudPost('saveAction',{key:k,value:v,updatedAt:Date.now()});}
 function cloudSaveSnapshot(snap){cloudPost('saveSnapshot',snap);}
 function cloudLoad(){
-  if(!CLOUD_URL)return;
+  var u=cloudUrl();if(!u)return;
   var cb='infarmCloudCb_'+Date.now();
   window[cb]=function(data){
     try{
       if(data&&data.actions){S.actions=Object.assign({},S.actions||{},data.actions);saveActionsLocal();}
-      if(data&&Array.isArray(data.history)){S.hist=data.history.concat(S.hist||[]).slice(0,15);try{localStorage.setItem(LSH,JSON.stringify(S.hist));}catch(e){}}
+      if(data&&Array.isArray(data.history)){S.hist=mergeHistory(data.history,S.hist||[]);saveHistoryLocal();}
       rc();
     }finally{try{delete window[cb];}catch(e){window[cb]=null;}}
   };
-  var sc=document.createElement('script');sc.src=CLOUD_URL+'?action=loadAll&callback='+cb+'&_='+(Date.now());sc.onerror=function(){try{delete window[cb];}catch(e){}};document.body.appendChild(sc);
+  var sc=document.createElement('script');sc.src=u+'?action=loadAll&callback='+cb+'&_='+(Date.now());sc.onerror=function(){try{delete window[cb];}catch(e){}};document.body.appendChild(sc);
 }
 
 /* ============ PAGE: RAPIKAN KOLOM ============ */
