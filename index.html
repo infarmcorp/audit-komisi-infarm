@@ -268,7 +268,7 @@ tr.prob:hover td{background:#FAE0E0;}
 .subc{font-size:10px;color:var(--mut);margin-top:2px;}
 .r-red{color:var(--red-tx);font-weight:700;}.r-grn{color:var(--green-tx);font-weight:600;}
 
-/* rapikan kolom */
+/* pilihan kolom */
 .cllist{max-height:380px;overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:4px 16px;border:1px solid var(--line);border-radius:var(--radius-sm);padding:14px;background:var(--surface2);}
 .clitem{display:flex;align-items:center;gap:9px;font-size:12.5px;padding:5px 4px;cursor:pointer;border-radius:6px;}
 .clitem:hover{background:#fff;}
@@ -425,8 +425,6 @@ body[data-mood="warm"]{--bg:#F4EEE2;--surface:#FFFDF8;--surface2:#FAF5EB;--topba
 .btn-save-note{height:32px!important;border:1px solid var(--green)!important;background:var(--green)!important;color:#fff!important;border-radius:9px!important;font-family:inherit!important;font-size:11px!important;font-weight:800!important;cursor:pointer!important;padding:0!important;}
 .btn-save-note:hover{background:var(--green-d)!important;border-color:var(--green-d)!important;}
 .btn-save-note:disabled{opacity:.65!important;cursor:wait!important;}
-.awrap.save-note .asave.dirty:before{background:#E8B43B!important;}
-
 .awrap.save-note .asave{font-size:9.5px!important;line-height:1!important;margin-top:4px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;}
 .awrap.save-note .asave.dirty{color:var(--amber-tx)!important;}
 .awrap.save-note .asave.saving{color:var(--blue-tx)!important;}
@@ -698,13 +696,13 @@ function saveActionBtn(btn,k){
   }catch(e){}
   var v=getAction(k)||'';
   actionSavedMark(k,'saving','Menyimpan...');
-  if(btn){btn.disabled=true;btn.textContent='...';}
+  if(btn){btn.disabled=true;btn.textContent='Saving';}
   cloudSaveAction(k,v).then(function(){
     actionSavedMark(k,'saved','Tersimpan');
   }).catch(function(err){
-    console.warn(err);
+    console.error(err);
     actionSavedMark(k,'fail','Gagal simpan');
-    alert('Catatan tersimpan lokal, tapi gagal masuk Supabase. Biasanya tabel/policy Supabase belum dibuat. Jalankan file SQL v2 di Supabase SQL Editor. Detail: '+(err&&err.message?err.message:err));
+    alert('Catatan belum berhasil tersimpan ke Supabase. Pastikan SQL schema v2 sudah dijalankan dan RLS policy aktif. Detail: '+(err&&err.message?err.message:err));
   }).finally(function(){
     if(btn){btn.disabled=false;btn.textContent='Save';}
   });
@@ -718,9 +716,7 @@ function actionEditor(k,v,mini){
   if(!mini){
     field='<textarea rows="1" data-action-key="'+esc(k)+'" class="actbox" placeholder="Isi tindakan..." oninput="setAction('+jsq(k)+',this.value)">'+esc(v||'')+'</textarea>';
   }
-  var st=(v||'')?'saved':'dirty';
-  var tx=(v||'')?'Tersimpan':'Belum diisi';
-  return '<div class="'+cls+'"><div class="actline">'+field+'<button type="button" class="btn-save-note" onclick="saveActionBtn(this,'+jsq(k)+')">Save</button></div><div class="asave '+st+'" data-save-key="'+esc(k)+'">'+tx+'</div></div>';
+  return '<div class="'+cls+'"><div class="actline">'+field+'<button type="button" class="btn-save-note" onclick="saveActionBtn(this,'+jsq(k)+')">Save</button></div><div class="asave saved" data-save-key="'+esc(k)+'">Tersimpan</div></div>';
 }
 function actionCell(platform,r){
   if(!needAction(platform,r))return '<td><div class="actempty">Tidak perlu tindakan</div></td>';
@@ -1151,7 +1147,7 @@ function pHistDetail(x,i){
   var tabs='<div class="histtabs">'
     +'<button class="pill sp'+(v==='shopee'?' on':'')+'" onclick="setHistView(\'shopee\')">Shopee ('+sp.length+')</button>'
     +'<button class="pill tk'+(v==='tiktok'?' on':'')+'" onclick="setHistView(\'tiktok\')">TikTok ('+tk.length+')</button></div>';
-  return '<div class="histdetail"><div class="hdt">Detail hasil audit tersimpan</div><div class="hds">Bisa dilihat langsung di app. Isi catatan lalu klik Save agar tersimpan ke Supabase dan ikut masuk saat export Excel.</div>'+tabs+pHistTable(v,rows)+'</div>';
+  return '<div class="histdetail"><div class="hdt">Detail hasil audit tersimpan</div><div class="hds">Bisa dilihat langsung di app. Isi catatan lalu klik Save. Setelah status Tersimpan, catatan akan kebawa saat Download Excel.</div>'+tabs+pHistTable(v,rows)+'</div>';
 }
 function histPct(v){return (v==null||v==='')?'—':esc(v)+'%';}
 function histBdg(label){
@@ -1264,35 +1260,8 @@ function cloudLoad(){
   }).catch(function(err){console.warn('Gagal load dari Supabase',err);});
 }
 
-/* ============ PAGE: RAPIKAN KOLOM ============ */
-function p3(){
-  if(!S.src.cl){
-    return '<div class="note"><span class="ni">'+IC.info+'</span><div><b>Rapikan dulu Excel berantakan.</b> Upload file LAPB (Shopee atau TikTok), centang kolom yang mau dipertahankan, buang sisanya, lalu download versi rapinya. Header &amp; sheet terdeteksi otomatis.</div></div>'
-    +'<div class="card"><h2><span class="pi" style="background:var(--green-bg);color:var(--green-tx)">'+IC.clean+'</span>Rapikan kolom Excel</h2>'+dz('cl','Upload Excel/CSV yang mau dirapikan','Berlaku untuk file Shopee maupun TikTok')+'</div>';
-  }
-  return '<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;">'
-    +'<h2 style="margin:0"><span class="pi" style="background:var(--green-bg);color:var(--green-tx)">'+IC.clean+'</span>Pilih kolom yang dipertahankan</h2>'
-    +'<div><input type="file" id="fi-cl" accept=".xlsx,.xls,.csv" style="display:none" onchange="hFile(\'cl\',this.files[0])"><button class="btn btn-ghost" onclick="document.getElementById(\'fi-cl\').click()">Ganti file</button></div></div>'
-    +'<p class="cnt" style="margin:0 0 14px">\u2713 '+esc(S.clFile)+'</p>'
-    +'<div class="shsel" id="sh-cl"></div>'
-    +'<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px;">'
-    +'<input type="text" class="inp" placeholder="Cari kolom..." oninput="clFilterChange(this.value)" value="'+esc(S.clFilter||'')+'" style="flex:1;min-width:160px;">'
-    +'<button class="btn btn-ghost" onclick="clAll(true)">Centang tampil</button>'
-    +'<button class="btn btn-ghost" onclick="clAll(false)">Kosongkan tampil</button></div>'
-    +'<div id="cl-list" class="cllist"></div>'
-    +'<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-top:16px;">'
-    +'<span id="cl-count" class="ref"></span>'
-    +'<button class="btn btn-primary" onclick="clDownload()">'+IC.download+'Download Excel rapi</button></div></div>';
-}
-function fillClSheet(){var el=document.getElementById('sh-cl');if(!el)return;var src=S.src.cl;if(!src||src.names.length<=1){el.innerHTML='';return;}el.innerHTML='<label>Pilih sheet ('+src.names.length+' tersedia)</label><select onchange="clPickSheet(this.value)">'+src.names.map(function(n){return '<option'+(n===src.sheet?' selected':'')+'>'+esc(n)+'</option>';}).join('')+'</select>';}
-function clInitKeep(){var rows=S.src.cl.sheets[S.src.cl.sheet]||[];var keys=gk(rows);S._clKeys=keys;S.clKeep={};keys.forEach(function(k){var lk=k.toLowerCase();S.clKeep[k]=['sku','affiliate','ads','komisi','kategori','produk','nama'].some(function(t){return lk.indexOf(t)>-1;});});}
-function clPickSheet(name){if(!S.src.cl)return;S.src.cl.sheet=name;clInitKeep();S.clFilter='';rc();}
-function buildClList(){var keys=S._clKeys||[];var flt=(S.clFilter||'').toLowerCase();var any=false;var h=keys.map(function(k,i){if(flt&&k.toLowerCase().indexOf(flt)===-1)return '';any=true;return '<label class="clitem"><input type="checkbox" '+(S.clKeep[k]?'checked':'')+' onchange="clToggle('+i+')"><span>'+esc(k)+'</span></label>';}).join('');return any?h:'<p class="ref" style="padding:8px">Tidak ada kolom cocok.</p>';}
-function updateClCount(){var keys=S._clKeys||[];var sel=keys.filter(function(k){return S.clKeep[k];}).length;var el=document.getElementById('cl-count');if(el)el.textContent=sel+' dari '+keys.length+' kolom dipilih';}
-function clToggle(i){var k=S._clKeys[i];if(k==null)return;S.clKeep[k]=!S.clKeep[k];updateClCount();}
-function clFilterChange(v){S.clFilter=v;var el=document.getElementById('cl-list');if(el)el.innerHTML=buildClList();}
-function clAll(val){var keys=S._clKeys||[];var flt=(S.clFilter||'').toLowerCase();keys.forEach(function(k){if(!flt||k.toLowerCase().indexOf(flt)>-1)S.clKeep[k]=val;});var el=document.getElementById('cl-list');if(el)el.innerHTML=buildClList();updateClCount();}
-function clDownload(){var src=S.src.cl;if(!src)return;var rows=src.sheets[src.sheet]||[];var keep=(S._clKeys||[]).filter(function(k){return S.clKeep[k];});if(!keep.length){alert('Pilih minimal satu kolom.');return;}var out=rows.map(function(r){var o={};keep.forEach(function(k){o[k]=r[k];});return o;});var ws=XLSX.utils.json_to_sheet(out,{header:keep});var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Rapi');var base=(S.clFile||'data').replace(/\.[^.]+$/,'');XLSX.writeFile(wb,base+'-rapi.xlsx');}
+/* ============ PAGE 3 DINONAKTIFKAN ============ */
+function p3(){return p_dash();}
 
 /* ============ INIT ============ */
 (function init(){
