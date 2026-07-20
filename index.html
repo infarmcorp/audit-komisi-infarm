@@ -376,6 +376,45 @@ body[data-mood="warm"]{--bg:#F4EEE2;--surface:#FFFDF8;--surface2:#FAF5EB;--topba
 .histlegend{font-size:11px!important;margin-bottom:8px!important;}
 @media(max-width:900px){.histtable table{min-width:1040px!important;}.acttd{width:145px!important;min-width:145px!important;max-width:145px!important;}}
 
+
+
+/* === PATCH INFARM V2: histori audit benar-benar 1 baris === */
+.res-compact table{width:100%!important;min-width:1080px!important;table-layout:fixed!important;}
+.res-compact th,.res-compact td{white-space:nowrap;vertical-align:middle!important;}
+.res-compact tbody tr{height:48px!important;}
+.res-compact td{padding:7px 9px!important;}
+.res-compact th{padding:8px 9px!important;}
+.res-name,.res-sugg{display:none!important;}
+.acttd{width:130px!important;min-width:130px!important;max-width:130px!important;}
+.actbox{height:34px!important;min-height:34px!important;max-height:34px!important;overflow:auto!important;font-size:11px!important;padding:6px 8px!important;}
+.histtable-line table{width:100%!important;min-width:1080px!important;table-layout:fixed!important;}
+.histtable-line .tblscroll{overflow-x:auto!important;max-height:560px!important;}
+.histtable-line th,.histtable-line td{white-space:nowrap!important;vertical-align:middle!important;padding:7px 8px!important;font-size:12px!important;}
+.histtable-line th{font-size:10px!important;letter-spacing:.02em!important;background:var(--surface2)!important;}
+.histtable-line tbody tr{height:46px!important;}
+.histtable-line .c-prod{width:255px!important;}
+.histtable-line .c-id{width:145px!important;}
+.histtable-line .c-num{width:92px!important;text-align:right!important;}
+.histtable-line .c-status{width:105px!important;text-align:center!important;}
+.histtable-line .c-act{width:130px!important;}
+.hist-prod-line{display:flex;align-items:center;gap:7px;min-width:0;overflow:hidden;white-space:nowrap;}
+.hist-prod-sku{font-family:var(--mono);font-weight:800;color:var(--ink);font-size:12px;flex:0 0 auto;max-width:112px;overflow:hidden;text-overflow:ellipsis;}
+.hist-prod-name{color:var(--mut);font-size:11.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;}
+.hist-prod-sugg{display:none!important;}
+.hpid{font-family:var(--mono);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.histtable-line .numtd{text-align:right!important;font-family:var(--mono);font-weight:700;}
+.histtable-line .statustd{text-align:center!important;}
+.histtable-line .bdg{display:inline-block;max-width:92px!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:3px 8px!important;font-size:10px!important;}
+.hist-action-cell{width:130px!important;max-width:130px!important;}
+.awrap-mini{gap:2px!important;}
+.actinput{width:100%;height:32px;border:1px solid var(--line2);border-radius:9px;background:#fff;color:var(--ink);font-family:inherit;font-size:11.5px;padding:6px 8px;outline:none;}
+.actinput:focus{border-color:var(--green);box-shadow:0 0 0 3px var(--green-bg);}
+.awrap-mini .asave{font-size:9px!important;line-height:1!important;margin-top:2px;}
+.histlegend-line{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:11.5px!important;margin:8px 0 10px!important;color:var(--mut);}
+.histlegend-line b{color:var(--ink2);}
+.histlegend-line .dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:4px;}
+@media(max-width:900px){.histtable-line table,.res-compact table{min-width:1080px!important;}.histtable-line .c-prod{width:230px!important;}.histtable-line .c-act{width:120px!important;}.hist-action-cell{width:120px!important;max-width:120px!important;}}
+
 </style>
 </head>
 <body>
@@ -611,7 +650,7 @@ function actionSavedMark(k,state){
 }
 function syncActionInputs(k,v){
   try{
-    var nodes=document.querySelectorAll('textarea[data-action-key]');
+    var nodes=document.querySelectorAll('textarea[data-action-key],input[data-action-key]');
     nodes.forEach(function(n){
       if(n.getAttribute('data-action-key')===k && n.value!==v)n.value=v;
     });
@@ -631,9 +670,10 @@ function setAction(k,v){
 }
 function needAction(platform,r){return platform==='shopee'?(r.prob||r.warn):(r.prob||r.warn);}
 function actionEditor(k,v,mini){
-  var cls=mini?'actbox actmini':'actbox';
-  var ph=mini?'Catatan...':'Isi tindakan...';
-  return '<div class="awrap"><textarea rows="1" data-action-key="'+esc(k)+'" class="'+cls+'" placeholder="'+ph+'" oninput="setAction('+jsq(k)+',this.value)" onchange="setAction('+jsq(k)+',this.value)" onblur="setAction('+jsq(k)+',this.value)">'+esc(v||'')+'</textarea><div class="asave saved" data-save-key="'+esc(k)+'">Tersimpan</div></div>';
+  if(mini){
+    return '<div class="awrap awrap-mini"><input type="text" data-action-key="'+esc(k)+'" class="actinput" placeholder="Catatan..." value="'+esc(v||'')+'" oninput="setAction('+jsq(k)+',this.value)" onchange="setAction('+jsq(k)+',this.value)" onblur="setAction('+jsq(k)+',this.value)"><div class="asave saved" data-save-key="'+esc(k)+'">Tersimpan</div></div>';
+  }
+  return '<div class="awrap"><textarea rows="1" data-action-key="'+esc(k)+'" class="actbox" placeholder="Isi tindakan..." oninput="setAction('+jsq(k)+',this.value)" onchange="setAction('+jsq(k)+',this.value)" onblur="setAction('+jsq(k)+',this.value)">'+esc(v||'')+'</textarea><div class="asave saved" data-save-key="'+esc(k)+'">Tersimpan</div></div>';
 }
 function actionCell(platform,r){
   if(!needAction(platform,r))return '<td><div class="actempty">Tidak perlu tindakan</div></td>';
@@ -1085,25 +1125,29 @@ function histMetric(lines){
 }
 function histProdCell(r){
   var sku=String(r['SKU']||'-'),nm=String(r['Nama']||''),sg=String(r['Saran SKU']||'');
-  return '<div class="hprod"><div class="hsku" title="'+esc(sku)+'">'+esc(sku)+'</div>'+(nm?'<div class="hname" title="'+esc(nm)+'">'+esc(nm)+'</div>':'')+(sg?'<div class="hsugg" title="'+esc(sg)+'">≈ '+esc(sg)+'</div>':'')+'</div>';
+  var title=[sku,nm,sg?('Saran: '+sg):''].filter(Boolean).join(' — ');
+  var main=(sku&&sku!=='-')?sku:'-';
+  return '<div class="hist-prod-line" title="'+esc(title)+'"><span class="hist-prod-sku">'+esc(main)+'</span>'+(nm?'<span class="hist-prod-name">'+esc(nm)+'</span>':'')+(sg?'<span class="hist-prod-sugg">≈ '+esc(sg)+'</span>':'')+'</div>';
 }
+
 function pHistTable(platform,rows){
   if(!rows.length)return '<div class="empty" style="padding:28px"><p>Tidak ada data '+(platform==='shopee'?'Shopee':'TikTok')+' di histori ini.</p></div>';
-  var legend='<div class="histlegend"><b>Tampilan 1 baris</b><span>Urutan: Target LAPB → Seller Center → Status.</span><span><i class="dot" style="background:var(--red)"></i> perlu tindakan</span><span><i class="dot" style="background:#E8B43B"></i> perlu cek</span></div>';
+  var legend='<div class="histlegend histlegend-line"><b>Tampilan 1 baris</b><span>Urutan kolom: Target LAPB → Seller Center → Status.</span><span><i class="dot" style="background:var(--red)"></i> perlu tindakan</span><span><i class="dot" style="background:#E8B43B"></i> perlu cek</span></div>';
   var head,body;
   if(platform==='shopee'){
     head='<tr><th class="c-prod">Produk</th><th class="c-id">Product ID</th><th class="c-num">Target LAPB</th><th class="c-num">Seller Center</th><th class="c-status">Status</th><th class="c-act">Tindakan</th></tr>';
     body=rows.map(function(r){
-      return '<tr><td>'+histProdCell(r)+'</td><td><div class="hpid" title="'+esc(r['Product ID']||'-')+'">'+esc(r['Product ID']||'-')+'</div></td><td class="numtd">'+histPct(r['Target Tier LAPB (%)'])+'</td><td class="numtd">'+histPct(r['Komisi Aktual SC (%)'])+'</td><td class="statustd">'+histBdg(r['Status'])+'</td><td>'+histActionCell(platform,r)+'</td></tr>';
+      return '<tr><td>'+histProdCell(r)+'</td><td><div class="hpid" title="'+esc(r['Product ID']||'-')+'">'+esc(r['Product ID']||'-')+'</div></td><td class="numtd">'+histPct(r['Target Tier LAPB (%)'])+'</td><td class="numtd">'+histPct(r['Komisi Aktual SC (%)'])+'</td><td class="statustd">'+histBdg(r['Status'])+'</td><td class="hist-action-cell">'+histActionCell(platform,r)+'</td></tr>';
     }).join('');
   }else{
     head='<tr><th class="c-prod">Produk</th><th class="c-id">Product ID</th><th class="c-num">Target Standar LAPB</th><th class="c-num">Seller Center</th><th class="c-status">Status</th><th class="c-num">Target Ads LAPB</th><th class="c-num">Seller Center</th><th class="c-status">Status</th><th class="c-act">Tindakan</th></tr>';
     body=rows.map(function(r){
-      return '<tr><td>'+histProdCell(r)+'</td><td><div class="hpid" title="'+esc(r['Product ID']||'-')+'">'+esc(r['Product ID']||'-')+'</div></td><td class="numtd">'+histPct(r['Std Target LAPB (%)'])+'</td><td class="numtd">'+histPct(r['Std Komisi Aktual (%)'])+'</td><td class="statustd">'+histBdg(r['Status Std'])+'</td><td class="numtd">'+histPct(r['Ads Target LAPB (%)'])+'</td><td class="numtd">'+histPct(r['Ads Komisi Aktual (%)'])+'</td><td class="statustd">'+histBdg(r['Status Ads'])+'</td><td>'+histActionCell(platform,r)+'</td></tr>';
+      return '<tr><td>'+histProdCell(r)+'</td><td><div class="hpid" title="'+esc(r['Product ID']||'-')+'">'+esc(r['Product ID']||'-')+'</div></td><td class="numtd">'+histPct(r['Std Target LAPB (%)'])+'</td><td class="numtd">'+histPct(r['Std Komisi Aktual (%)'])+'</td><td class="statustd">'+histBdg(r['Status Std'])+'</td><td class="numtd">'+histPct(r['Ads Target LAPB (%)'])+'</td><td class="numtd">'+histPct(r['Ads Komisi Aktual (%)'])+'</td><td class="statustd">'+histBdg(r['Status Ads'])+'</td><td class="hist-action-cell">'+histActionCell(platform,r)+'</td></tr>';
     }).join('');
   }
-  return legend+'<div class="tblwrap histtable"><div class="tblscroll"><table><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div><div class="tfoot">Menampilkan '+rows.length+' baris histori '+(platform==='shopee'?'Shopee':'TikTok')+'. Detail lengkap tetap ada saat download Excel.</div></div>';
+  return legend+'<div class="tblwrap histtable histtable-line"><div class="tblscroll"><table class="one-line-audit"><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div><div class="tfoot">Menampilkan '+rows.length+' baris histori '+(platform==='shopee'?'Shopee':'TikTok')+'. Kolom tindakan bisa diedit langsung dan otomatis tersimpan.</div></div>';
 }
+
 function downloadHist(i){
   var x=(S.hist||[])[i];if(!x)return;
   var wb=XLSX.utils.book_new();
