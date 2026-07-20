@@ -220,9 +220,17 @@ tr.prob:hover td{background:#FAE0E0;}
 .empty p{margin:0 0 16px;font-size:14px;}
 .ref{font-size:12px;color:var(--mut);}
 .ref a{color:var(--red-tx);font-weight:600;text-decoration:none;}
-.actbox{min-width:220px;width:100%;min-height:54px;resize:vertical;border:1px solid var(--line2);border-radius:9px;padding:8px 10px;font-family:inherit;font-size:12.5px;background:#fff;color:var(--ink);}
-.actbox:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px var(--green-bg);}
-.acttd{min-width:240px;}
+.actbox{min-width:0;width:100%;min-height:72px;resize:vertical;border:1px solid var(--line2);border-radius:12px;padding:10px 11px;font-family:inherit;font-size:12.5px;line-height:1.45;background:#fff;color:var(--ink);box-shadow:inset 0 1px 0 rgba(0,0,0,.02);}
+.actbox::placeholder{color:#8D988F;}
+.actbox:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px var(--green-bg),inset 0 1px 0 rgba(0,0,0,.02);}
+.acttd{min-width:260px;}
+.awrap{display:flex;flex-direction:column;gap:6px;min-width:0;}
+.asave{font-size:10.5px;color:var(--mut);display:flex;align-items:center;gap:6px;min-height:14px;}
+.asave:before{content:'';width:6px;height:6px;border-radius:50%;background:var(--mut2);display:inline-block;}
+.asave.saving{color:var(--amber-tx);}.asave.saving:before{background:#E8B43B;}
+.asave.saved{color:var(--green-tx);}.asave.saved:before{background:var(--green);}
+.asave.fail{color:var(--red-tx);}.asave.fail:before{background:var(--red);}
+.actempty{font-size:11px;color:var(--mut);background:var(--surface2);border:1px dashed var(--line2);border-radius:10px;padding:8px;text-align:center;}
 .histrow{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;margin-bottom:10px;box-shadow:var(--shadow-sm);}
 .histrow .ht{font-weight:800;font-size:14px;}
 .histrow .hs{font-size:12px;color:var(--mut);margin-top:2px;}
@@ -232,29 +240,30 @@ tr.prob:hover td{background:#FAE0E0;}
 .histdetail .hds{font-size:12px;color:var(--mut);margin-bottom:12px;}
 .histtabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
 .histtabs .pill{padding:7px 13px;font-size:12px;}
-.histtable .tblscroll{max-height:520px;overflow:auto;}
-.histtable table{table-layout:fixed;width:100%;min-width:920px!important;}
-.histtable th{padding:9px 10px;font-size:10px;letter-spacing:.03em;}
-.histtable td{padding:9px 10px;font-size:12px;vertical-align:middle;}
+.histtable .tblscroll{max-height:560px;overflow:auto;}
+.histtable table{table-layout:fixed;width:100%;min-width:760px!important;}
+.histtable th{padding:8px 10px;font-size:9.5px;letter-spacing:.02em;background:#FBFCFA;}
+.histtable td{padding:8px 10px;font-size:12px;vertical-align:top;}
 .histtable tbody tr:hover td{background:#fff;}
-.histtable .c-prod{width:280px;}.histtable .c-id{width:150px;}.histtable .c-met{width:130px;}.histtable .c-status{width:150px;}.histtable .c-act{width:230px;}
-.hprod{min-width:0;}.hsku{font-family:var(--mono);font-weight:800;font-size:12px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px;}
-.hname{font-size:11.5px;color:var(--mut);line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-.hsugg{font-size:11px;color:var(--amber-tx);line-height:1.3;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.hpid{font-family:var(--mono);font-size:11.5px;white-space:nowrap;color:var(--ink2);}
-.hmetric{display:flex;flex-direction:column;gap:3px;max-width:130px;}
-.hmetric .mline{display:flex;align-items:center;justify-content:space-between;gap:8px;line-height:1.2;}
-.hmetric .ml{font-size:10.5px;color:var(--mut);font-weight:600;}
-.hmetric .mv{font-size:12px;font-weight:800;color:var(--ink2);font-family:var(--mono);text-align:right;}
+.histtable .c-prod{width:230px;}.histtable .c-id{width:130px;}.histtable .c-met{width:170px;}.histtable .c-status{width:130px;}.histtable .c-act{width:230px;}
+.hprod{min-width:0;}.hsku{font-family:var(--mono);font-weight:800;font-size:11.5px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px;}
+.hname{font-size:11px;color:var(--mut);line-height:1.3;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;}
+.hsugg{font-size:10.5px;color:var(--amber-tx);line-height:1.25;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hpid{font-family:var(--mono);font-size:11px;white-space:nowrap;color:var(--ink2);overflow:hidden;text-overflow:ellipsis;}
+.hmetric{display:flex;flex-direction:column;gap:4px;max-width:100%;}
+.hmetric .mline{display:flex;align-items:center;justify-content:space-between;gap:8px;line-height:1.18;background:var(--surface2);border:1px solid var(--line);border-radius:8px;padding:5px 7px;}
+.hmetric .ml{font-size:10px;color:var(--mut);font-weight:700;}
+.hmetric .mv{font-size:11.5px;font-weight:800;color:var(--ink2);font-family:var(--mono);text-align:right;}
 .hmetric .mv.bad{color:var(--red-tx);}.hmetric .mv.ok{color:var(--green-tx);}
+.hmetric .group{font-size:10px;font-weight:800;color:var(--green-tx);margin:1px 0 -1px;}
 .hstatus{display:flex;flex-direction:column;gap:5px;align-items:flex-start;}
-.hstatus .stline{display:flex;align-items:center;gap:6px;}.hstatus .stlbl{font-size:10.5px;font-weight:800;color:var(--mut);min-width:28px;}
-.histtable .bdg{font-size:10px;padding:3px 8px;max-width:118px;overflow:hidden;text-overflow:ellipsis;}
-.actmini{min-width:0;width:100%;min-height:38px;max-height:76px;font-size:11.5px;padding:7px 9px;resize:vertical;}
+.hstatus .stline{display:flex;align-items:center;gap:6px;}.hstatus .stlbl{font-size:10px;font-weight:800;color:var(--mut);min-width:26px;}
+.histtable .bdg{font-size:9.5px;padding:3px 7px;max-width:112px;overflow:hidden;text-overflow:ellipsis;}
+.actmini{min-width:0;width:100%;min-height:66px;max-height:100px;font-size:11.5px;padding:8px 9px;resize:vertical;border-radius:10px;}
 .histlegend{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 10px;color:var(--mut);font-size:11.5px;}
 .histlegend b{color:var(--ink2);}.histlegend .dot{width:7px;height:7px;border-radius:50%;display:inline-block;}
 .syncnote{font-size:11.5px;color:var(--mut);margin-top:5px;}
-@media(max-width:900px){.histtable table{min-width:860px!important;}.histtable .c-prod{width:240px}.histtable .c-id{width:135px}.histtable .c-act{width:210px}}
+@media(max-width:900px){.histtable table{min-width:760px!important;}.histtable .c-prod{width:210px}.histtable .c-id{width:120px}.histtable .c-act{width:220px}}
 
 .subc{font-size:10px;color:var(--mut);margin-top:2px;}
 .r-red{color:var(--red-tx);font-weight:700;}.r-grn{color:var(--green-tx);font-weight:600;}
@@ -555,24 +564,50 @@ function applyActionToHistory(k,v){
   });
 }
 var _actTimer={};
+function actionSavedMark(k,state){
+  try{
+    var nodes=document.querySelectorAll('[data-save-key]');
+    nodes.forEach(function(n){
+      if(n.getAttribute('data-save-key')!==k)return;
+      n.className='asave '+(state||'');
+      n.textContent=state==='saving'?'Menyimpan otomatis...':state==='fail'?'Belum terkirim, tetap tersimpan lokal':'Tersimpan';
+    });
+  }catch(e){}
+}
+function syncActionInputs(k,v){
+  try{
+    var nodes=document.querySelectorAll('textarea[data-action-key]');
+    nodes.forEach(function(n){
+      if(n.getAttribute('data-action-key')===k && n.value!==v)n.value=v;
+    });
+  }catch(e){}
+}
 function setAction(k,v){
+  v=v||'';
   if(!S.actions)S.actions={};
-  S.actions[k]=v||'';
+  S.actions[k]=v;
   saveActionsLocal();
-  applyActionToHistory(k,v||'');
+  applyActionToHistory(k,v);
   saveHistoryLocal();
+  syncActionInputs(k,v);
+  actionSavedMark(k,'saving');
   if(_actTimer[k])clearTimeout(_actTimer[k]);
-  _actTimer[k]=setTimeout(function(){cloudSaveAction(k,v||'');},450);
+  _actTimer[k]=setTimeout(function(){cloudSaveAction(k,v);},550);
 }
 function needAction(platform,r){return platform==='shopee'?(r.prob||r.warn):(r.prob||r.warn);}
+function actionEditor(k,v,mini){
+  var cls=mini?'actbox actmini':'actbox';
+  var ph=mini?'Catatan tindakan...':'Tulis tindakan... contoh: Naikkan komisi Std SC ke target';
+  return '<div class="awrap"><textarea data-action-key="'+esc(k)+'" class="'+cls+'" placeholder="'+ph+'" oninput="setAction('+jsq(k)+',this.value)" onchange="setAction('+jsq(k)+',this.value)" onblur="setAction('+jsq(k)+',this.value)">'+esc(v||'')+'</textarea><div class="asave saved" data-save-key="'+esc(k)+'">Tersimpan</div></div>';
+}
 function actionCell(platform,r){
-  if(!needAction(platform,r))return '<td style="color:var(--mut);text-align:center">—</td>';
+  if(!needAction(platform,r))return '<td><div class="actempty">Tidak perlu tindakan</div></td>';
   var k=actionKey(platform,r),v=getAction(k);
-  return '<td class="acttd"><textarea class="actbox" placeholder="Tulis tindakan... contoh: Naikkan komisi Std SC ke target" oninput="setAction('+jsq(k)+',this.value)" onchange="setAction('+jsq(k)+',this.value)" onblur="setAction('+jsq(k)+',this.value)">'+esc(v)+'</textarea></td>';
+  return '<td class="acttd">'+actionEditor(k,v,false)+'</td>';
 }
 function histActionCell(platform,r){
   var k=actionKeyFromExport(platform,r),v=getAction(k)||String(r['Tindakan']||'');
-  return '<textarea class="actbox actmini" placeholder="Tulis tindakan..." oninput="setAction('+jsq(k)+',this.value)" onchange="setAction('+jsq(k)+',this.value)" onblur="setAction('+jsq(k)+',this.value)">'+esc(v)+'</textarea>';
+  return actionEditor(k,v,true);
 }
 function rowToExport(platform,r){
   return platform==='shopee'
@@ -971,7 +1006,7 @@ function mergeHistory(){
 }
 function pHist(){
   var h=S.hist||[];
-  var cloud=isCloudEnabled()?'<div class="cloudbox">Cloud sync aktif. Tindakan & histori terbaru diambil dari Google Sheet saat app dibuka.<div class="syncnote">Kalau orang lain baru mengubah tindakan, refresh halaman untuk mengambil update terbaru.</div></div>':'<div class="note amber"><span class="ni">'+IC.info+'</span><div><b>Belum cloud.</b> Histori ini masih lokal di browser. Kalau file sudah diisi CLOUD_URL tapi masih muncul pesan ini, biasanya GitHub belum ter-commit/ter-deploy atau halaman masih cache.</div></div>';
+  var cloud=isCloudEnabled()?'<div class="cloudbox">Cloud sync aktif. Tindakan & histori terbaru diambil dari Google Sheet saat app dibuka.<div class="syncnote">Kalau orang lain baru mengubah tindakan, refresh halaman untuk mengambil update terbaru dari Google Sheet.</div></div>':'<div class="note amber"><span class="ni">'+IC.info+'</span><div><b>Belum cloud.</b> Histori ini masih lokal di browser. Kalau file sudah diisi CLOUD_URL tapi masih muncul pesan ini, biasanya GitHub belum ter-commit/ter-deploy atau halaman masih cache.</div></div>';
   if(!h.length)return cloud+'<div class="empty"><div class="eic">'+IC.save+'</div><p>Belum ada histori audit. Jalankan audit dulu, nanti hasilnya otomatis tersimpan di sini.</p></div>';
   return cloud+h.map(function(x,i){
     var dt=new Date(x.ts).toLocaleString('id-ID',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
@@ -995,7 +1030,7 @@ function pHistDetail(x,i){
   var tabs='<div class="histtabs">'
     +'<button class="pill sp'+(v==='shopee'?' on':'')+'" onclick="setHistView(\'shopee\')">Shopee ('+sp.length+')</button>'
     +'<button class="pill tk'+(v==='tiktok'?' on':'')+'" onclick="setHistView(\'tiktok\')">TikTok ('+tk.length+')</button></div>';
-  return '<div class="histdetail"><div class="hdt">Detail hasil audit tersimpan</div><div class="hds">Bisa dilihat langsung di app. Kolom tindakan di sini juga bisa diedit dan tetap tersimpan.</div>'+tabs+pHistTable(v,rows)+'</div>';
+  return '<div class="histdetail"><div class="hdt">Detail hasil audit tersimpan</div><div class="hds">Bisa dilihat langsung di app. Kolom tindakan/catatan bisa diedit di sini. Setelah diketik, otomatis tersimpan lokal dan dikirim ke Google Sheet.</div>'+tabs+pHistTable(v,rows)+'</div>';
 }
 function histPct(v){return (v==null||v==='')?'—':esc(v)+'%';}
 function histBdg(label){
@@ -1022,20 +1057,19 @@ function pHistTable(platform,rows){
   var legend='<div class="histlegend"><b>Tampilan ringkas</b><span>Produk dibatasi 2 baris agar mudah dibaca.</span><span><i class="dot" style="background:var(--red)"></i> perlu tindakan</span><span><i class="dot" style="background:#E8B43B"></i> perlu cek</span></div>';
   var head,body;
   if(platform==='shopee'){
-    head='<tr><th class="c-prod">Produk</th><th class="c-id">Product ID</th><th class="c-met">Komisi</th><th class="c-status">Status</th><th class="c-act">Tindakan</th></tr>';
+    head='<tr><th class="c-prod">Produk</th><th class="c-id">Product ID</th><th class="c-met">Komisi</th><th class="c-status">Status</th><th class="c-act">Tindakan / Catatan</th></tr>';
     body=rows.map(function(r){
       var samp=r['Sampel (%)'];
       var harus=histPct(r['Komisi Diharapkan (%)'])+(samp?'<span style="font-size:10px;color:var(--mut);font-family:var(--sans)"> + sampel '+esc(samp)+'%</span>':'');
       var met='<div class="hmetric"><div class="mline"><span class="ml">LAPB</span><span class="mv">'+histPct(r['Target Tier LAPB (%)'])+'</span></div><div class="mline"><span class="ml">Harus</span><span class="mv">'+harus+'</span></div><div class="mline"><span class="ml">SC</span><span class="mv">'+histPct(r['Komisi Aktual SC (%)'])+'</span></div></div>';
-      return '<tr><td>'+histProdCell(r)+'</td><td><div class="hpid">'+esc(r['Product ID']||'-')+'</div></td><td>'+met+'</td><td>'+histBdg(r['Status'])+'</td><td>'+histActionCell(platform,r)+'</td></tr>';
+      return '<tr><td>'+histProdCell(r)+'</td><td><div class="hpid" title="'+esc(r['Product ID']||'-')+'">'+esc(r['Product ID']||'-')+'</div></td><td>'+met+'</td><td>'+histBdg(r['Status'])+'</td><td>'+histActionCell(platform,r)+'</td></tr>';
     }).join('');
   }else{
-    head='<tr><th class="c-prod">Produk</th><th class="c-id">Product ID</th><th class="c-met">Std</th><th class="c-met">Ads</th><th class="c-status">Status</th><th class="c-act">Tindakan</th></tr>';
+    head='<tr><th class="c-prod">Produk</th><th class="c-id">Product ID</th><th class="c-met">Komisi Std & Ads</th><th class="c-status">Status</th><th class="c-act">Tindakan / Catatan</th></tr>';
     body=rows.map(function(r){
-      var std=histMetric([['Target',r['Std Target LAPB (%)'],'%'],['SC',r['Std Komisi Aktual (%)'],'%']]);
-      var ads=histMetric([['Target',r['Ads Target LAPB (%)'],'%'],['SC',r['Ads Komisi Aktual (%)'],'%']]);
+      var met='<div class="hmetric"><div class="group">STD</div><div class="mline"><span class="ml">Target</span><span class="mv">'+histPct(r['Std Target LAPB (%)'])+'</span></div><div class="mline"><span class="ml">SC</span><span class="mv">'+histPct(r['Std Komisi Aktual (%)'])+'</span></div><div class="group">ADS</div><div class="mline"><span class="ml">Target</span><span class="mv">'+histPct(r['Ads Target LAPB (%)'])+'</span></div><div class="mline"><span class="ml">SC</span><span class="mv">'+histPct(r['Ads Komisi Aktual (%)'])+'</span></div></div>';
       var st='<div class="hstatus"><div class="stline"><span class="stlbl">STD</span>'+histBdg(r['Status Std'])+'</div><div class="stline"><span class="stlbl">ADS</span>'+histBdg(r['Status Ads'])+'</div></div>';
-      return '<tr><td>'+histProdCell(r)+'</td><td><div class="hpid">'+esc(r['Product ID']||'-')+'</div></td><td>'+std+'</td><td>'+ads+'</td><td>'+st+'</td><td>'+histActionCell(platform,r)+'</td></tr>';
+      return '<tr><td>'+histProdCell(r)+'</td><td><div class="hpid" title="'+esc(r['Product ID']||'-')+'">'+esc(r['Product ID']||'-')+'</div></td><td>'+met+'</td><td>'+st+'</td><td>'+histActionCell(platform,r)+'</td></tr>';
     }).join('');
   }
   return legend+'<div class="tblwrap histtable"><div class="tblscroll"><table><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div><div class="tfoot">Menampilkan '+rows.length+' baris histori '+(platform==='shopee'?'Shopee':'TikTok')+'. Detail lengkap tetap ada saat download Excel.</div></div>';
@@ -1084,7 +1118,22 @@ function cloudPost(action,payload){
     }catch(e2){}
   }
 }
-function cloudSaveAction(k,v){cloudPost('saveAction',{key:k,value:v,updatedAt:Date.now()});}
+function cloudSaveAction(k,v){
+  var u=cloudUrl();
+  if(!u){actionSavedMark(k,'saved');return;}
+  // Catatan tindakan kecil, jadi pakai JSONP GET agar paling aman di GitHub Pages → Apps Script.
+  try{
+    var cb='infarmSaveActionCb_'+Date.now()+'_'+Math.floor(Math.random()*10000);
+    window[cb]=function(res){try{delete window[cb];}catch(e){} actionSavedMark(k,(res&&res.ok)?'saved':'fail');};
+    var sc=document.createElement('script');
+    sc.src=u+'?action=saveAction&key='+encodeURIComponent(k||'')+'&value='+encodeURIComponent(v||'')+'&updatedAt='+encodeURIComponent(Date.now())+'&callback='+cb+'&_='+(Date.now());
+    sc.onerror=function(){try{delete window[cb];}catch(e){} actionSavedMark(k,'fail');};
+    document.body.appendChild(sc);
+    setTimeout(function(){try{document.body.removeChild(sc);}catch(e){}},8000);
+  }catch(e){
+    cloudPost('saveAction',{key:k,value:v,updatedAt:Date.now()});
+  }
+}
 function cloudSaveSnapshot(snap){cloudPost('saveSnapshot',snap);}
 function cloudLoad(){
   var u=cloudUrl();if(!u)return;
