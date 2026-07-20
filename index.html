@@ -415,6 +415,27 @@ body[data-mood="warm"]{--bg:#F4EEE2;--surface:#FFFDF8;--surface2:#FAF5EB;--topba
 .histlegend-line .dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:4px;}
 @media(max-width:900px){.histtable-line table,.res-compact table{min-width:1080px!important;}.histtable-line .c-prod{width:230px!important;}.histtable-line .c-act{width:120px!important;}.hist-action-cell{width:120px!important;max-width:120px!important;}}
 
+
+
+/* === PATCH: tombol Save catatan tindakan === */
+.awrap.save-note{display:block!important;width:100%!important;min-width:0!important;}
+.awrap.save-note .actline{display:grid!important;grid-template-columns:minmax(0,1fr) 48px!important;gap:6px!important;align-items:center!important;}
+.awrap.save-note .actbox,.awrap.save-note .actinput{width:100%!important;height:32px!important;min-height:32px!important;max-height:32px!important;border:1px solid var(--line2)!important;border-radius:9px!important;background:#fff!important;color:var(--ink)!important;font-family:inherit!important;font-size:11px!important;padding:6px 8px!important;line-height:1.2!important;overflow:hidden!important;white-space:nowrap!important;resize:none!important;}
+.awrap.save-note .actbox:focus,.awrap.save-note .actinput:focus{outline:none!important;border-color:var(--green)!important;box-shadow:0 0 0 3px var(--green-bg)!important;}
+.btn-save-note{height:32px!important;border:1px solid var(--green)!important;background:var(--green)!important;color:#fff!important;border-radius:9px!important;font-family:inherit!important;font-size:11px!important;font-weight:800!important;cursor:pointer!important;padding:0!important;}
+.btn-save-note:hover{background:var(--green-d)!important;border-color:var(--green-d)!important;}
+.btn-save-note:disabled{opacity:.65!important;cursor:wait!important;}
+.awrap.save-note .asave.dirty:before{background:#E8B43B!important;}
+
+.awrap.save-note .asave{font-size:9.5px!important;line-height:1!important;margin-top:4px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;}
+.awrap.save-note .asave.dirty{color:var(--amber-tx)!important;}
+.awrap.save-note .asave.saving{color:var(--blue-tx)!important;}
+.awrap.save-note .asave.saved{color:var(--green-tx)!important;}
+.awrap.save-note .asave.fail{color:var(--red-tx)!important;}
+.hist-action-cell,.histtable-line .c-act,.acttd{width:145px!important;min-width:145px!important;max-width:145px!important;}
+.histtable-line table,.res-compact table{min-width:1120px!important;}
+@media(max-width:900px){.hist-action-cell,.histtable-line .c-act,.acttd{width:140px!important;min-width:140px!important;max-width:140px!important;}.histtable-line table,.res-compact table{min-width:1120px!important;}}
+
 </style>
 </head>
 <body>
@@ -478,8 +499,7 @@ var NAV=[
   {id:0,ic:'map',t:'Mapping SKU',sub:'Cocokkan Product ID Shopee &amp; TikTok dengan SKU'},
   {id:1,ic:'upload',t:'Upload Data',sub:'Upload LAPB &amp; data komisi seller center'},
   {id:2,ic:'result',t:'Hasil Audit',sub:'Perbandingan target LAPB vs komisi aktual'},
-  {id:'hist',ic:'save',t:'Histori Audit',sub:'Riwayat hasil audit & tindakan per SKU'},
-  {id:3,ic:'clean',t:'Rapikan Kolom',sub:'Buang kolom Excel yang tidak perlu'}
+  {id:'hist',ic:'save',t:'Histori Audit',sub:'Riwayat hasil audit & tindakan per SKU'}
 ];
 
 var S={tab:'dash',view:'shopee',filter:'all',q:'',scope:'both',colSt:'all',colStd:'all',colAds:'all',mapSp:[],mapTk:[],src:{},
@@ -640,13 +660,13 @@ function applyActionToHistory(k,v){
   });
 }
 var _actTimer={};
-function actionSavedMark(k,state){
+function actionSavedMark(k,state,msg){
   try{
     var nodes=document.querySelectorAll('[data-save-key]');
     nodes.forEach(function(n){
       if(n.getAttribute('data-save-key')!==k)return;
       n.className='asave '+(state||'');
-      n.textContent=state==='saving'?'Menyimpan otomatis...':state==='fail'?'Belum terkirim, tetap tersimpan lokal':'Tersimpan';
+      n.textContent=msg || (state==='dirty'?'Belum di-save':state==='saving'?'Menyimpan...':state==='fail'?'Gagal simpan':'Tersimpan');
     });
   }catch(e){}
 }
@@ -659,6 +679,8 @@ function syncActionInputs(k,v){
   }catch(e){}
 }
 function setAction(k,v){
+  // Ketik catatan: simpan dulu ke state lokal agar export langsung ikut membawa catatan.
+  // Supabase baru dikirim saat tombol Save diklik, supaya user jelas kapan catatan disimpan bersama.
   v=v||'';
   if(!S.actions)S.actions={};
   S.actions[k]=v;
@@ -666,16 +688,39 @@ function setAction(k,v){
   applyActionToHistory(k,v);
   saveHistoryLocal();
   syncActionInputs(k,v);
-  actionSavedMark(k,'saving');
-  if(_actTimer[k])clearTimeout(_actTimer[k]);
-  _actTimer[k]=setTimeout(function(){cloudSaveAction(k,v);},550);
+  actionSavedMark(k,'dirty');
+}
+function saveActionBtn(btn,k){
+  try{
+    var wrap=btn.closest('.awrap');
+    var inp=wrap?wrap.querySelector('[data-action-key]'):null;
+    if(inp)setAction(k,inp.value||'');
+  }catch(e){}
+  var v=getAction(k)||'';
+  actionSavedMark(k,'saving','Menyimpan...');
+  if(btn){btn.disabled=true;btn.textContent='...';}
+  cloudSaveAction(k,v).then(function(){
+    actionSavedMark(k,'saved','Tersimpan');
+  }).catch(function(err){
+    console.warn(err);
+    actionSavedMark(k,'fail','Gagal simpan');
+    alert('Catatan tersimpan lokal, tapi gagal masuk Supabase. Biasanya tabel/policy Supabase belum dibuat. Jalankan file SQL v2 di Supabase SQL Editor. Detail: '+(err&&err.message?err.message:err));
+  }).finally(function(){
+    if(btn){btn.disabled=false;btn.textContent='Save';}
+  });
 }
 function needAction(platform,r){return platform==='shopee'?(r.prob||r.warn):(r.prob||r.warn);}
 function actionEditor(k,v,mini){
-  if(mini){
-    return '<div class="awrap awrap-mini"><input type="text" data-action-key="'+esc(k)+'" class="actinput" placeholder="Catatan..." value="'+esc(v||'')+'" oninput="setAction('+jsq(k)+',this.value)" onchange="setAction('+jsq(k)+',this.value)" onblur="setAction('+jsq(k)+',this.value)"><div class="asave saved" data-save-key="'+esc(k)+'">Tersimpan</div></div>';
+  var cls=mini?'awrap awrap-mini save-note':'awrap save-note';
+  var field=mini
+    ? '<input type="text" data-action-key="'+esc(k)+'" class="actinput" placeholder="Catatan..." value="'+esc(v||'')+'" oninput="setAction('+jsq(k)+',this.value)">'
+    : '<textarea rows="1" data-action-key="'+esc(k)+'" class="actbox" placeholder="Isi tindakan...">'+esc(v||'')+'</textarea>';
+  if(!mini){
+    field='<textarea rows="1" data-action-key="'+esc(k)+'" class="actbox" placeholder="Isi tindakan..." oninput="setAction('+jsq(k)+',this.value)">'+esc(v||'')+'</textarea>';
   }
-  return '<div class="awrap"><textarea rows="1" data-action-key="'+esc(k)+'" class="actbox" placeholder="Isi tindakan..." oninput="setAction('+jsq(k)+',this.value)" onchange="setAction('+jsq(k)+',this.value)" onblur="setAction('+jsq(k)+',this.value)">'+esc(v||'')+'</textarea><div class="asave saved" data-save-key="'+esc(k)+'">Tersimpan</div></div>';
+  var st=(v||'')?'saved':'dirty';
+  var tx=(v||'')?'Tersimpan':'Belum diisi';
+  return '<div class="'+cls+'"><div class="actline">'+field+'<button type="button" class="btn-save-note" onclick="saveActionBtn(this,'+jsq(k)+')">Save</button></div><div class="asave '+st+'" data-save-key="'+esc(k)+'">'+tx+'</div></div>';
 }
 function actionCell(platform,r){
   if(!needAction(platform,r))return '<td><div class="actempty">Tidak perlu tindakan</div></td>';
@@ -857,10 +902,9 @@ function updateTop(){
 }
 
 function rc(){var el=document.getElementById('content');if(!el)return;
-  el.innerHTML=S.tab==='dash'?p_dash():S.tab===0?p0():S.tab===1?p1():S.tab===2?p2():S.tab==='hist'?pHist():p3();
+  el.innerHTML=S.tab==='dash'?p_dash():S.tab===0?p0():S.tab===1?p1():S.tab===2?p2():S.tab==='hist'?pHist():p_dash();
   if(S.tab===0){if(S.src.ms)applySlot('ms');if(S.src.mt)applySlot('mt');rsvMap();}
   if(S.tab===1){['ls','sp','lt','tk'].forEach(function(id){if(S.src[id])applySlot(id);});}
-  if(S.tab===3){if(S.src.cl){fillClSheet();var cle=document.getElementById('cl-list');if(cle)cle.innerHTML=buildClList();updateClCount();}}
   updateNav();updateTop();
   document.querySelector('.main').scrollTop=0;
 }
@@ -1107,7 +1151,7 @@ function pHistDetail(x,i){
   var tabs='<div class="histtabs">'
     +'<button class="pill sp'+(v==='shopee'?' on':'')+'" onclick="setHistView(\'shopee\')">Shopee ('+sp.length+')</button>'
     +'<button class="pill tk'+(v==='tiktok'?' on':'')+'" onclick="setHistView(\'tiktok\')">TikTok ('+tk.length+')</button></div>';
-  return '<div class="histdetail"><div class="hdt">Detail hasil audit tersimpan</div><div class="hds">Bisa dilihat langsung di app. Kolom tindakan/catatan bisa diedit di sini. Setelah diketik, otomatis tersimpan lokal dan dikirim ke Supabase.</div>'+tabs+pHistTable(v,rows)+'</div>';
+  return '<div class="histdetail"><div class="hdt">Detail hasil audit tersimpan</div><div class="hds">Bisa dilihat langsung di app. Isi catatan lalu klik Save agar tersimpan ke Supabase dan ikut masuk saat export Excel.</div>'+tabs+pHistTable(v,rows)+'</div>';
 }
 function histPct(v){return (v==null||v==='')?'—':esc(v)+'%';}
 function histBdg(label){
@@ -1147,7 +1191,7 @@ function pHistTable(platform,rows){
       return '<tr><td>'+histProdCell(r)+'</td><td><div class="hpid" title="'+esc(r['Product ID']||'-')+'">'+esc(r['Product ID']||'-')+'</div></td><td class="numtd">'+histPct(r['Std Target LAPB (%)'])+'</td><td class="numtd">'+histPct(r['Std Komisi Aktual (%)'])+'</td><td class="statustd">'+histBdg(r['Status Std'])+'</td><td class="numtd">'+histPct(r['Ads Target LAPB (%)'])+'</td><td class="numtd">'+histPct(r['Ads Komisi Aktual (%)'])+'</td><td class="statustd">'+histBdg(r['Status Ads'])+'</td><td class="hist-action-cell">'+histActionCell(platform,r)+'</td></tr>';
     }).join('');
   }
-  return legend+'<div class="tblwrap histtable histtable-line"><div class="tblscroll"><table class="one-line-audit"><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div><div class="tfoot">Menampilkan '+rows.length+' baris histori '+(platform==='shopee'?'Shopee':'TikTok')+'. Catatan tersimpan lokal dan tersinkron ke Supabase jika config sudah aktif.</div></div>';
+  return legend+'<div class="tblwrap histtable histtable-line"><div class="tblscroll"><table class="one-line-audit"><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div><div class="tfoot">Menampilkan '+rows.length+' baris histori '+(platform==='shopee'?'Shopee':'TikTok')+'. Catatan akan ikut masuk saat Download Excel setelah tombol Save diklik.</div></div>';
 }
 
 function downloadHist(i){
@@ -1178,14 +1222,13 @@ async function sbFetch(path,opt){
   try{return await res.json();}catch(e){return null;}
 }
 function cloudSaveAction(k,v){
-  if(!isCloudEnabled()){actionSavedMark(k,'saved');return;}
+  if(!isCloudEnabled())return Promise.resolve({local:true});
   var row={action_key:String(k||''),value:String(v||''),updated_at:new Date().toISOString()};
-  sbFetch('audit_actions?on_conflict=action_key',{
+  return sbFetch('audit_actions?on_conflict=action_key',{
     method:'POST',
     headers:sbHeaders({'Prefer':'resolution=merge-duplicates,return=minimal'}),
-    body:JSON.stringify([row])
-  }).then(function(){actionSavedMark(k,'saved');})
-    .catch(function(err){console.warn(err);actionSavedMark(k,'fail');});
+    body:JSON.stringify(row)
+  });
 }
 function cloudSaveSnapshot(snap){
   if(!isCloudEnabled())return;
