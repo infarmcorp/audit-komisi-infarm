@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Audit Komisi Infarm — Shopee &amp; TikTok</title>
-<!-- Cloud sharing fix v2: form-post + JSONP load/saveAction fallback -->
+<!-- Supabase sharing: actions + audit history tersimpan di Supabase -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -468,8 +468,10 @@ var IC={
 var SP_T2K={0:0,5:5,7:5,11:9},SP_T2S={0:0,5:0,7:2,11:2},SP_TIER=[0,5,7,11];
 var TK_T2K={0:0,1:1,3:3,5:5,7:5,10:8},TK_T2S={0:0,1:0,3:0,5:0,7:2,10:2},TK_TIER=[0,1,3,5,7,10];
 var LS='infarm-audit-map-v2',LSUM='infarm-audit-summary-v1',LSA='infarm-audit-actions-v1',LSH='infarm-audit-history-v1';
-// Opsional agar tindakan & histori sama antar user: isi dengan URL Google Apps Script Web App.
-var CLOUD_URL='https://script.google.com/macros/s/AKfycbyzUqbZxEPQbISnbUxFYmf5cLRBIS6l_ZfuyptPtYan4IfR_1R6PHEZrwbaPBdYNhMA/exec';
+// Supabase config. Isi dari Supabase > Project Settings > API.
+// Jangan isi dengan service_role/secret key. Pakai anon/public key saja.
+var SUPABASE_URL='https://kgzqldzjvqhujtdefuit.supabase.co';
+var SUPABASE_ANON_KEY='sb_publishable_Di_QjM_IBiKIcDqx2te-rg_Z5A7rVBN';
 
 var NAV=[
   {id:'dash',ic:'dash',t:'Dashboard',sub:'Ringkasan audit komisi terakhir'},
@@ -737,7 +739,7 @@ function p2(){
   }
   if(!filt.length)rows='<tr><td colspan="'+(S.view==='shopee'?6:9)+'" style="text-align:center;padding:40px;color:var(--mut)">Tidak ada baris cocok dengan filter.</td></tr>';
   return tog+diag+scards(R)+filterBar
-  +(isCloudEnabled()?'<div class="cloudbox">Cloud sync aktif: tindakan & histori dibagikan ke semua user. Refresh halaman untuk mengambil perubahan terbaru dari user lain.</div>':'<div class="note amber"><span class="ni">'+IC.info+'</span><div><b>Catatan sharing data:</b> tindakan & histori saat ini tersimpan di browser ini. Agar sama antar orang, isi CLOUD_URL dengan Google Apps Script Web App.</div></div>')
+  +(isCloudEnabled()?'<div class="cloudbox">Supabase aktif: tindakan & histori dibagikan ke semua user. Refresh halaman untuk mengambil perubahan terbaru dari user lain.</div>':'<div class="note amber"><span class="ni">'+IC.info+'</span><div><b>Supabase belum aktif:</b> tindakan & histori saat ini baru tersimpan di browser ini. Agar sama antar orang, isi SUPABASE_URL dan SUPABASE_ANON_KEY di index.html.</div></div>')
   +'<div class="tblwrap res-compact"><div class="tblscroll"><table style="min-width:'+mw+'px"><thead>'+head+'</thead><tbody>'+rows+'</tbody></table></div>'
   +'<div class="tfoot">Menampilkan '+filt.length+' dari '+R.length+' listing (Product ID) · baris merah = perlu diperbaiki di seller center</div></div>';
 }
@@ -1081,7 +1083,7 @@ function mergeHistory(){
 }
 function pHist(){
   var h=S.hist||[];
-  var cloud=isCloudEnabled()?'<div class="cloudbox">Cloud sync aktif. Tindakan & histori terbaru diambil dari Google Sheet saat app dibuka.<div class="syncnote">Kalau orang lain baru mengubah tindakan, refresh halaman untuk mengambil update terbaru dari Google Sheet.</div></div>':'<div class="note amber"><span class="ni">'+IC.info+'</span><div><b>Belum cloud.</b> Histori ini masih lokal di browser. Kalau file sudah diisi CLOUD_URL tapi masih muncul pesan ini, biasanya GitHub belum ter-commit/ter-deploy atau halaman masih cache.</div></div>';
+  var cloud=isCloudEnabled()?'<div class="cloudbox">Supabase aktif. Tindakan & histori terbaru diambil dari Supabase saat app dibuka.<div class="syncnote">Kalau orang lain baru mengubah tindakan, refresh halaman untuk mengambil update terbaru dari Supabase.</div></div>':'<div class="note amber"><span class="ni">'+IC.info+'</span><div><b>Supabase belum aktif.</b> Histori ini masih lokal di browser. Kalau file sudah diisi Supabase URL & anon key tapi masih muncul pesan ini, biasanya GitHub belum ter-commit/ter-deploy atau halaman masih cache.</div></div>';
   if(!h.length)return cloud+'<div class="empty"><div class="eic">'+IC.save+'</div><p>Belum ada histori audit. Jalankan audit dulu, nanti hasilnya otomatis tersimpan di sini.</p></div>';
   return cloud+h.map(function(x,i){
     var dt=new Date(x.ts).toLocaleString('id-ID',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
@@ -1105,7 +1107,7 @@ function pHistDetail(x,i){
   var tabs='<div class="histtabs">'
     +'<button class="pill sp'+(v==='shopee'?' on':'')+'" onclick="setHistView(\'shopee\')">Shopee ('+sp.length+')</button>'
     +'<button class="pill tk'+(v==='tiktok'?' on':'')+'" onclick="setHistView(\'tiktok\')">TikTok ('+tk.length+')</button></div>';
-  return '<div class="histdetail"><div class="hdt">Detail hasil audit tersimpan</div><div class="hds">Bisa dilihat langsung di app. Kolom tindakan/catatan bisa diedit di sini. Setelah diketik, otomatis tersimpan lokal dan dikirim ke Google Sheet.</div>'+tabs+pHistTable(v,rows)+'</div>';
+  return '<div class="histdetail"><div class="hdt">Detail hasil audit tersimpan</div><div class="hds">Bisa dilihat langsung di app. Kolom tindakan/catatan bisa diedit di sini. Setelah diketik, otomatis tersimpan lokal dan dikirim ke Supabase.</div>'+tabs+pHistTable(v,rows)+'</div>';
 }
 function histPct(v){return (v==null||v==='')?'—':esc(v)+'%';}
 function histBdg(label){
@@ -1145,7 +1147,7 @@ function pHistTable(platform,rows){
       return '<tr><td>'+histProdCell(r)+'</td><td><div class="hpid" title="'+esc(r['Product ID']||'-')+'">'+esc(r['Product ID']||'-')+'</div></td><td class="numtd">'+histPct(r['Std Target LAPB (%)'])+'</td><td class="numtd">'+histPct(r['Std Komisi Aktual (%)'])+'</td><td class="statustd">'+histBdg(r['Status Std'])+'</td><td class="numtd">'+histPct(r['Ads Target LAPB (%)'])+'</td><td class="numtd">'+histPct(r['Ads Komisi Aktual (%)'])+'</td><td class="statustd">'+histBdg(r['Status Ads'])+'</td><td class="hist-action-cell">'+histActionCell(platform,r)+'</td></tr>';
     }).join('');
   }
-  return legend+'<div class="tblwrap histtable histtable-line"><div class="tblscroll"><table class="one-line-audit"><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div><div class="tfoot">Menampilkan '+rows.length+' baris histori '+(platform==='shopee'?'Shopee':'TikTok')+'. Kolom tindakan bisa diedit langsung dan otomatis tersimpan.</div></div>';
+  return legend+'<div class="tblwrap histtable histtable-line"><div class="tblscroll"><table class="one-line-audit"><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div><div class="tfoot">Menampilkan '+rows.length+' baris histori '+(platform==='shopee'?'Shopee':'TikTok')+'. Catatan tersimpan lokal dan tersinkron ke Supabase jika config sudah aktif.</div></div>';
 }
 
 function downloadHist(i){
@@ -1157,69 +1159,66 @@ function downloadHist(i){
   if(tk.length)XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(tk),'Audit TikTok');
   XLSX.writeFile(wb,(x.id||'audit-history')+'.xlsx');
 }
-function isCloudEnabled(){return !!String(CLOUD_URL||'').trim();}
-function cloudUrl(){return String(CLOUD_URL||'').trim().replace(/\/$/,'');}
-function ensureCloudFrame(){
-  var id='infarm-cloud-frame';
-  var fr=document.getElementById(id);
-  if(!fr){fr=document.createElement('iframe');fr.id=id;fr.name=id;fr.style.display='none';document.body.appendChild(fr);}
-  return id;
+function isCloudEnabled(){return !!(String(SUPABASE_URL||'').trim()&&String(SUPABASE_ANON_KEY||'').trim());}
+function sbBase(){return String(SUPABASE_URL||'').trim().replace(/\/rest\/v1\/?$/,'').replace(/\/$/,'');}
+function sbHeaders(extra){
+  var h={
+    'apikey':String(SUPABASE_ANON_KEY||'').trim(),
+    'Authorization':'Bearer '+String(SUPABASE_ANON_KEY||'').trim(),
+    'Content-Type':'application/json'
+  };
+  if(extra){Object.keys(extra).forEach(function(k){h[k]=extra[k];});}
+  return h;
 }
-function cloudPost(action,payload){
-  var u=cloudUrl();if(!u)return;
-  // Pakai form POST ke iframe tersembunyi agar aman dari kendala CORS Google Apps Script.
-  try{
-    var target=ensureCloudFrame();
-    var f=document.createElement('form');
-    f.method='POST';
-    f.action=u+'?action='+encodeURIComponent(action)+'&_='+(Date.now());
-    f.target=target;
-    f.style.display='none';
-    var inp=document.createElement('input');
-    inp.type='hidden';inp.name='payload';inp.value=JSON.stringify(payload||{});
-    f.appendChild(inp);document.body.appendChild(f);f.submit();
-    setTimeout(function(){try{document.body.removeChild(f);}catch(e){}},3000);
-  }catch(e){
-    // Fallback khusus catatan tindakan: kirim via JSONP GET karena payload-nya kecil.
-    try{
-      if(action==='saveAction'){
-        var data=payload||{},cb='infarmSaveCb_'+Date.now();
-        window[cb]=function(){try{delete window[cb];}catch(err){}};
-        var sc=document.createElement('script');
-        sc.src=u+'?action=saveAction&key='+encodeURIComponent(data.key||'')+'&value='+encodeURIComponent(data.value||'')+'&updatedAt='+encodeURIComponent(data.updatedAt||Date.now())+'&callback='+cb+'&_='+(Date.now());
-        sc.onerror=function(){try{delete window[cb];}catch(err){}};document.body.appendChild(sc);
-      }
-    }catch(e2){}
-  }
+async function sbFetch(path,opt){
+  var url=sbBase()+'/rest/v1/'+path;
+  var res=await fetch(url,opt||{});
+  if(!res.ok){var txt='';try{txt=await res.text();}catch(e){} throw new Error('Supabase '+res.status+' '+txt);}
+  if(res.status===204)return null;
+  try{return await res.json();}catch(e){return null;}
 }
 function cloudSaveAction(k,v){
-  var u=cloudUrl();
-  if(!u){actionSavedMark(k,'saved');return;}
-  // Catatan tindakan kecil, jadi pakai JSONP GET agar paling aman di GitHub Pages → Apps Script.
-  try{
-    var cb='infarmSaveActionCb_'+Date.now()+'_'+Math.floor(Math.random()*10000);
-    window[cb]=function(res){try{delete window[cb];}catch(e){} actionSavedMark(k,(res&&res.ok)?'saved':'fail');};
-    var sc=document.createElement('script');
-    sc.src=u+'?action=saveAction&key='+encodeURIComponent(k||'')+'&value='+encodeURIComponent(v||'')+'&updatedAt='+encodeURIComponent(Date.now())+'&callback='+cb+'&_='+(Date.now());
-    sc.onerror=function(){try{delete window[cb];}catch(e){} actionSavedMark(k,'fail');};
-    document.body.appendChild(sc);
-    setTimeout(function(){try{document.body.removeChild(sc);}catch(e){}},8000);
-  }catch(e){
-    cloudPost('saveAction',{key:k,value:v,updatedAt:Date.now()});
-  }
+  if(!isCloudEnabled()){actionSavedMark(k,'saved');return;}
+  var row={action_key:String(k||''),value:String(v||''),updated_at:new Date().toISOString()};
+  sbFetch('audit_actions?on_conflict=action_key',{
+    method:'POST',
+    headers:sbHeaders({'Prefer':'resolution=merge-duplicates,return=minimal'}),
+    body:JSON.stringify([row])
+  }).then(function(){actionSavedMark(k,'saved');})
+    .catch(function(err){console.warn(err);actionSavedMark(k,'fail');});
 }
-function cloudSaveSnapshot(snap){cloudPost('saveSnapshot',snap);}
+function cloudSaveSnapshot(snap){
+  if(!isCloudEnabled())return;
+  var row={audit_id:String(snap.id||('AUD-'+Date.now())),payload:snap,updated_at:new Date().toISOString()};
+  sbFetch('audit_history?on_conflict=audit_id',{
+    method:'POST',
+    headers:sbHeaders({'Prefer':'resolution=merge-duplicates,return=minimal'}),
+    body:JSON.stringify([row])
+  }).catch(function(err){console.warn('Gagal simpan histori ke Supabase',err);});
+}
+function normalizeHistoryFromSupabase(rows){
+  return (rows||[]).map(function(r){
+    var p=r.payload||{};
+    if(!p.id)p.id=r.audit_id;
+    if(!p.ts)p.ts=Date.parse(r.updated_at)||Date.now();
+    return p;
+  });
+}
 function cloudLoad(){
-  var u=cloudUrl();if(!u)return;
-  var cb='infarmCloudCb_'+Date.now();
-  window[cb]=function(data){
-    try{
-      if(data&&data.actions){S.actions=Object.assign({},S.actions||{},data.actions);saveActionsLocal();}
-      if(data&&Array.isArray(data.history)){S.hist=mergeHistory(data.history,S.hist||[]);saveHistoryLocal();}
-      rc();
-    }finally{try{delete window[cb];}catch(e){window[cb]=null;}}
-  };
-  var sc=document.createElement('script');sc.src=u+'?action=loadAll&callback='+cb+'&_='+(Date.now());sc.onerror=function(){try{delete window[cb];}catch(e){}};document.body.appendChild(sc);
+  if(!isCloudEnabled())return;
+  Promise.all([
+    sbFetch('audit_actions?select=action_key,value,updated_at&order=updated_at.desc&limit=5000',{headers:sbHeaders()}),
+    sbFetch('audit_history?select=audit_id,payload,updated_at&order=updated_at.desc&limit=15',{headers:sbHeaders()})
+  ]).then(function(all){
+    var acts=all[0]||[],histRows=all[1]||[];
+    if(acts.length){
+      var next=Object.assign({},S.actions||{});
+      acts.forEach(function(r){next[String(r.action_key||'')]=String(r.value||'');});
+      S.actions=next;saveActionsLocal();
+    }
+    if(histRows.length){S.hist=mergeHistory(normalizeHistoryFromSupabase(histRows),S.hist||[]);saveHistoryLocal();}
+    rc();
+  }).catch(function(err){console.warn('Gagal load dari Supabase',err);});
 }
 
 /* ============ PAGE: RAPIKAN KOLOM ============ */
