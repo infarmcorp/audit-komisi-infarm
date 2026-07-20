@@ -643,7 +643,7 @@ function flagsOf(r){
 }
 function matchQ(r){var q=(S.q||'').trim().toLowerCase();if(!q)return true;return String(r.sku).toLowerCase().indexOf(q)>-1||String(r.pid).toLowerCase().indexOf(q)>-1||String(r.nm||'').toLowerCase().indexOf(q)>-1;}
 
-function jsq(s){return JSON.stringify(String(s==null?'':s));}
+function jsq(s){return JSON.stringify(String(s==null?'':s)).replace(/"/g,'&quot;');}
 function actionKey(platform,r){return platform+'|'+String(r.sku||'-')+'|'+String(r.pid||'-');}
 function actionKeyFromExport(platform,r){return platform+'|'+String(r['SKU']||r.sku||'-')+'|'+String(r['Product ID']||r.pid||'-');}
 function getAction(k){return (S.actions&&Object.prototype.hasOwnProperty.call(S.actions,k))?S.actions[k]:'';}
