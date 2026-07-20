@@ -339,6 +339,43 @@ body[data-mood="warm"]{--bg:#F4EEE2;--surface:#FFFDF8;--surface2:#FAF5EB;--topba
   --ink:#2A2117;--ink2:#473A2A;--mut:#867866;--mut2:#B0A48F;
   --line:#ECE3D3;--line2:#DCD1BC;
   --shadow:0 1px 2px rgba(80,60,30,.05),0 8px 24px -12px rgba(80,60,30,.14);}
+
+
+/* === PATCH INFARM: hasil audit 1-baris lebih ringkas === */
+.res-compact table,.histtable table{table-layout:fixed;}
+.res-compact th,.res-compact td,.histtable th,.histtable td{vertical-align:middle!important;}
+.res-prod{min-width:0;}
+.res-sku{font-family:var(--mono);font-weight:800;font-size:12px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.res-name{font-size:11px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;line-height:1.25;}
+.res-sugg{font-size:10.5px;color:var(--amber-tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;line-height:1.2;}
+.res-pid,.hpid{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.numtd{text-align:right;white-space:nowrap;font-family:var(--mono);font-weight:700;}
+.statustd{text-align:center;white-space:nowrap;}
+.res-compact .bdg,.histtable .bdg{white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;}
+.res-compact td{padding:8px 10px!important;font-size:12px!important;}
+.res-compact th{padding:9px 10px!important;font-size:10px!important;}
+.res-compact tbody tr{height:58px;}
+.acttd{width:150px!important;min-width:150px!important;max-width:150px!important;}
+.actbox{min-height:38px!important;height:38px!important;max-height:52px!important;resize:none!important;padding:7px 9px!important;font-size:11.5px!important;line-height:1.25!important;border-radius:10px!important;overflow:auto;}
+.actmini{min-height:34px!important;height:34px!important;max-height:46px!important;font-size:11px!important;padding:6px 8px!important;}
+.awrap{gap:3px!important;}
+.asave{font-size:9.5px!important;line-height:1.1!important;}
+.actempty{padding:6px!important;font-size:10px!important;line-height:1.15!important;}
+.histtable table{min-width:1040px!important;}
+.histtable .c-prod{width:190px!important;}
+.histtable .c-id{width:150px!important;}
+.histtable .c-num{width:95px!important;}
+.histtable .c-status{width:105px!important;}
+.histtable .c-act{width:150px!important;}
+.histtable th{padding:8px 8px!important;font-size:9.2px!important;}
+.histtable td{padding:7px 8px!important;font-size:11.5px!important;}
+.histtable tbody tr{height:54px;}
+.hsku{font-size:11px!important;}
+.hname{font-size:10.5px!important;-webkit-line-clamp:1!important;line-clamp:1!important;line-height:1.25!important;}
+.hsugg{font-size:10px!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.histlegend{font-size:11px!important;margin-bottom:8px!important;}
+@media(max-width:900px){.histtable table{min-width:1040px!important;}.acttd{width:145px!important;min-width:145px!important;max-width:145px!important;}}
+
 </style>
 </head>
 <body>
@@ -529,16 +566,14 @@ function p1(){
 }
 
 function tgtCell(tier,expKom,smp,status){
-  if(tier==null)return '<td style="text-align:right;color:var(--mut)">—</td>';
-  if(status==='target_invalid')return '<td style="text-align:right" class="r-red">'+tier+'%<div class="subc r-red">bukan tier valid</div></td>';
-  if(expKom===tier&&smp==null)return '<td style="text-align:right">'+tier+'%<div class="subc">target langsung</div></td>';
-  return '<td style="text-align:right">'+tier+'%<div class="subc">= komisi '+expKom+'%'+(smp?' + smpl '+smp+'%':'')+'</div></td>';
+  if(tier==null)return '<td class="numtd" style="color:var(--mut)">—</td>';
+  var cls=status==='target_invalid'?' r-red':'';
+  return '<td class="numtd'+cls+'" title="Target LAPB '+esc(tier)+'%">'+esc(tier)+'%</td>';
 }
 function actCell(status,act,subText){
-  if(act==null)return '<td style="text-align:right;color:var(--mut)">—</td>';
-  var cls=status==='match'?'r-grn':status==='mismatch'?'r-red':'';
-  var sub=subText?'<div class="subc">'+subText+'</div>':'';
-  return '<td class="'+cls+'" style="text-align:right'+(cls?'':';color:var(--mut)')+'">'+act+'%'+sub+'</td>';
+  if(act==null)return '<td class="numtd" style="color:var(--mut)">—</td>';
+  var cls=status==='match'?' r-grn':status==='mismatch'?' r-red':'';
+  return '<td class="numtd'+cls+'" title="Seller Center '+esc(act)+'%">'+esc(act)+'%</td>';
 }
 
 function flagsOf(r){
@@ -597,8 +632,8 @@ function setAction(k,v){
 function needAction(platform,r){return platform==='shopee'?(r.prob||r.warn):(r.prob||r.warn);}
 function actionEditor(k,v,mini){
   var cls=mini?'actbox actmini':'actbox';
-  var ph=mini?'Catatan tindakan...':'Tulis tindakan... contoh: Naikkan komisi Std SC ke target';
-  return '<div class="awrap"><textarea data-action-key="'+esc(k)+'" class="'+cls+'" placeholder="'+ph+'" oninput="setAction('+jsq(k)+',this.value)" onchange="setAction('+jsq(k)+',this.value)" onblur="setAction('+jsq(k)+',this.value)">'+esc(v||'')+'</textarea><div class="asave saved" data-save-key="'+esc(k)+'">Tersimpan</div></div>';
+  var ph=mini?'Catatan...':'Isi tindakan...';
+  return '<div class="awrap"><textarea rows="1" data-action-key="'+esc(k)+'" class="'+cls+'" placeholder="'+ph+'" oninput="setAction('+jsq(k)+',this.value)" onchange="setAction('+jsq(k)+',this.value)" onblur="setAction('+jsq(k)+',this.value)">'+esc(v||'')+'</textarea><div class="asave saved" data-save-key="'+esc(k)+'">Tersimpan</div></div>';
 }
 function actionCell(platform,r){
   if(!needAction(platform,r))return '<td><div class="actempty">Tidak perlu tindakan</div></td>';
@@ -651,19 +686,19 @@ function p2(){
     var mpS=mapList.slice(0,3).map(function(p){return p.pid;}).join(', ')||'(mapping kosong)';
     diag='<div class="note amber"><span class="ni">'+IC.alert+'</span><div><b>'+noskuRows.length+' Product ID tidak ada di mapping '+(S.view==='shopee'?'Shopee':'TikTok')+'.</b><br>Contoh ID seller center: <span class="mono">'+esc(scS)+'</span><br>Contoh ID mapping: <span class="mono">'+esc(mpS)+'</span><br>Bandingkan: kalau formatnya beda/terpotong, Product ID 18–19 digit harus disimpan sebagai <b>TEXT</b> di Excel (bukan angka) agar digitnya utuh.</div></div>';
   }
-  var nmcell=function(r){var sub=(r.nm?'<div class="subc">'+esc(r.nm)+'</div>':'')+(r.sugg?'<div class="subc" style="color:var(--amber-tx)">&#8776; '+esc(r.sugg)+' ?</div>':'');return '<td><div class="mono" style="font-weight:600">'+esc(r.sku)+'</div>'+sub+'</td>';};
+  var nmcell=function(r){var sku=esc(r.sku||'-'),nm=esc(r.nm||''),sg=esc(r.sugg||'');return '<td><div class="res-prod"><div class="res-sku" title="'+sku+'">'+sku+'</div>'+(nm?'<div class="res-name" title="'+nm+'">'+nm+'</div>':'')+(sg?'<div class="res-sugg" title="'+sg+'">≈ '+sg+' ?</div>':'')+'</div></td>';};
   var head,rows,mw;
   if(S.view==='shopee'){
-    mw=900;head='<tr><th>SKU</th><th>Product ID</th><th style="text-align:right">Target (LAPB)</th><th style="text-align:right">Komisi SC</th><th style="text-align:center"><span style="display:inline-flex;align-items:center">Status'+hfiltHtml('colSt',S.colSt,'setColSt')+'</span></th><th>Tindakan</th></tr>';
-    rows=filt.map(function(r){return '<tr class="'+(r.prob?'prob':'')+'">'+nmcell(r)+'<td class="mono">'+esc(r.pid)+'</td>'+tgtCell(r.tier,r.expKom,r.smp,r.status)+actCell(r.status,r.act)+'<td style="text-align:center">'+bge(r.status)+'</td>'+actionCell('shopee',r)+'</tr>';}).join('');
+    mw=850;head='<tr><th style="width:210px">SKU</th><th style="width:145px">Product ID</th><th style="width:110px;text-align:right">Target LAPB</th><th style="width:100px;text-align:right">Seller Center</th><th style="width:110px;text-align:center"><span style="display:inline-flex;align-items:center">Status'+hfiltHtml('colSt',S.colSt,'setColSt')+'</span></th><th style="width:150px">Tindakan</th></tr>';
+    rows=filt.map(function(r){return '<tr class="'+(r.prob?'prob':'')+'">'+nmcell(r)+'<td class="mono res-pid" title="'+esc(r.pid)+'">'+esc(r.pid)+'</td>'+tgtCell(r.tier,r.expKom,r.smp,r.status)+actCell(r.status,r.act)+'<td class="statustd">'+bge(r.status)+'</td>'+actionCell('shopee',r)+'</tr>';}).join('');
   }else{
-    mw=1120;head='<tr><th>SKU</th><th>Product ID</th><th style="text-align:right">Std target</th><th style="text-align:right">Std SC</th><th style="text-align:center"><span style="display:inline-flex;align-items:center">Status Std'+hfiltHtml('colStd',S.colStd,'setColStd')+'</span></th><th style="text-align:right">Ads target</th><th style="text-align:right">Ads SC</th><th style="text-align:center"><span style="display:inline-flex;align-items:center">Status Ads'+hfiltHtml('colAds',S.colAds,'setColAds')+'</span></th><th>Tindakan</th></tr>';
-    rows=filt.map(function(r){return '<tr class="'+(r.prob?'prob':'')+'">'+nmcell(r)+'<td class="mono">'+esc(r.pid)+'</td>'+tgtCell(r.sTier,r.sExp,r.sSmp,r.sStatus)+actCell(r.sStatus,r.sAct)+'<td style="text-align:center">'+bge(r.sStatus)+'</td>'+tgtCell(r.aTier,r.aExp,r.aSmp,r.aStatus)+actCell(r.aStatus,r.aAct)+'<td style="text-align:center">'+bge(r.aStatus)+'</td>'+actionCell('tiktok',r)+'</tr>';}).join('');
+    mw=1040;head='<tr><th style="width:210px">SKU</th><th style="width:145px">Product ID</th><th style="width:105px;text-align:right">Target Standar LAPB</th><th style="width:95px;text-align:right">Seller Center</th><th style="width:105px;text-align:center"><span style="display:inline-flex;align-items:center">Status'+hfiltHtml('colStd',S.colStd,'setColStd')+'</span></th><th style="width:105px;text-align:right">Target Ads LAPB</th><th style="width:95px;text-align:right">Seller Center</th><th style="width:105px;text-align:center"><span style="display:inline-flex;align-items:center">Status'+hfiltHtml('colAds',S.colAds,'setColAds')+'</span></th><th style="width:150px">Tindakan</th></tr>';
+    rows=filt.map(function(r){return '<tr class="'+(r.prob?'prob':'')+'">'+nmcell(r)+'<td class="mono res-pid" title="'+esc(r.pid)+'">'+esc(r.pid)+'</td>'+tgtCell(r.sTier,r.sExp,r.sSmp,r.sStatus)+actCell(r.sStatus,r.sAct)+'<td class="statustd">'+bge(r.sStatus)+'</td>'+tgtCell(r.aTier,r.aExp,r.aSmp,r.aStatus)+actCell(r.aStatus,r.aAct)+'<td class="statustd">'+bge(r.aStatus)+'</td>'+actionCell('tiktok',r)+'</tr>';}).join('');
   }
   if(!filt.length)rows='<tr><td colspan="'+(S.view==='shopee'?6:9)+'" style="text-align:center;padding:40px;color:var(--mut)">Tidak ada baris cocok dengan filter.</td></tr>';
   return tog+diag+scards(R)+filterBar
   +(isCloudEnabled()?'<div class="cloudbox">Cloud sync aktif: tindakan & histori dibagikan ke semua user. Refresh halaman untuk mengambil perubahan terbaru dari user lain.</div>':'<div class="note amber"><span class="ni">'+IC.info+'</span><div><b>Catatan sharing data:</b> tindakan & histori saat ini tersimpan di browser ini. Agar sama antar orang, isi CLOUD_URL dengan Google Apps Script Web App.</div></div>')
-  +'<div class="tblwrap"><div class="tblscroll"><table style="min-width:'+mw+'px"><thead>'+head+'</thead><tbody>'+rows+'</tbody></table></div>'
+  +'<div class="tblwrap res-compact"><div class="tblscroll"><table style="min-width:'+mw+'px"><thead>'+head+'</thead><tbody>'+rows+'</tbody></table></div>'
   +'<div class="tfoot">Menampilkan '+filt.length+' dari '+R.length+' listing (Product ID) · baris merah = perlu diperbaiki di seller center</div></div>';
 }
 
@@ -1054,22 +1089,17 @@ function histProdCell(r){
 }
 function pHistTable(platform,rows){
   if(!rows.length)return '<div class="empty" style="padding:28px"><p>Tidak ada data '+(platform==='shopee'?'Shopee':'TikTok')+' di histori ini.</p></div>';
-  var legend='<div class="histlegend"><b>Tampilan ringkas</b><span>Produk dibatasi 2 baris agar mudah dibaca.</span><span><i class="dot" style="background:var(--red)"></i> perlu tindakan</span><span><i class="dot" style="background:#E8B43B"></i> perlu cek</span></div>';
+  var legend='<div class="histlegend"><b>Tampilan 1 baris</b><span>Urutan: Target LAPB → Seller Center → Status.</span><span><i class="dot" style="background:var(--red)"></i> perlu tindakan</span><span><i class="dot" style="background:#E8B43B"></i> perlu cek</span></div>';
   var head,body;
   if(platform==='shopee'){
-    head='<tr><th class="c-prod">Produk</th><th class="c-id">Product ID</th><th class="c-met">Komisi</th><th class="c-status">Status</th><th class="c-act">Tindakan / Catatan</th></tr>';
+    head='<tr><th class="c-prod">Produk</th><th class="c-id">Product ID</th><th class="c-num">Target LAPB</th><th class="c-num">Seller Center</th><th class="c-status">Status</th><th class="c-act">Tindakan</th></tr>';
     body=rows.map(function(r){
-      var samp=r['Sampel (%)'];
-      var harus=histPct(r['Komisi Diharapkan (%)'])+(samp?'<span style="font-size:10px;color:var(--mut);font-family:var(--sans)"> + sampel '+esc(samp)+'%</span>':'');
-      var met='<div class="hmetric"><div class="mline"><span class="ml">LAPB</span><span class="mv">'+histPct(r['Target Tier LAPB (%)'])+'</span></div><div class="mline"><span class="ml">Harus</span><span class="mv">'+harus+'</span></div><div class="mline"><span class="ml">SC</span><span class="mv">'+histPct(r['Komisi Aktual SC (%)'])+'</span></div></div>';
-      return '<tr><td>'+histProdCell(r)+'</td><td><div class="hpid" title="'+esc(r['Product ID']||'-')+'">'+esc(r['Product ID']||'-')+'</div></td><td>'+met+'</td><td>'+histBdg(r['Status'])+'</td><td>'+histActionCell(platform,r)+'</td></tr>';
+      return '<tr><td>'+histProdCell(r)+'</td><td><div class="hpid" title="'+esc(r['Product ID']||'-')+'">'+esc(r['Product ID']||'-')+'</div></td><td class="numtd">'+histPct(r['Target Tier LAPB (%)'])+'</td><td class="numtd">'+histPct(r['Komisi Aktual SC (%)'])+'</td><td class="statustd">'+histBdg(r['Status'])+'</td><td>'+histActionCell(platform,r)+'</td></tr>';
     }).join('');
   }else{
-    head='<tr><th class="c-prod">Produk</th><th class="c-id">Product ID</th><th class="c-met">Komisi Std & Ads</th><th class="c-status">Status</th><th class="c-act">Tindakan / Catatan</th></tr>';
+    head='<tr><th class="c-prod">Produk</th><th class="c-id">Product ID</th><th class="c-num">Target Standar LAPB</th><th class="c-num">Seller Center</th><th class="c-status">Status</th><th class="c-num">Target Ads LAPB</th><th class="c-num">Seller Center</th><th class="c-status">Status</th><th class="c-act">Tindakan</th></tr>';
     body=rows.map(function(r){
-      var met='<div class="hmetric"><div class="group">STD</div><div class="mline"><span class="ml">Target</span><span class="mv">'+histPct(r['Std Target LAPB (%)'])+'</span></div><div class="mline"><span class="ml">SC</span><span class="mv">'+histPct(r['Std Komisi Aktual (%)'])+'</span></div><div class="group">ADS</div><div class="mline"><span class="ml">Target</span><span class="mv">'+histPct(r['Ads Target LAPB (%)'])+'</span></div><div class="mline"><span class="ml">SC</span><span class="mv">'+histPct(r['Ads Komisi Aktual (%)'])+'</span></div></div>';
-      var st='<div class="hstatus"><div class="stline"><span class="stlbl">STD</span>'+histBdg(r['Status Std'])+'</div><div class="stline"><span class="stlbl">ADS</span>'+histBdg(r['Status Ads'])+'</div></div>';
-      return '<tr><td>'+histProdCell(r)+'</td><td><div class="hpid" title="'+esc(r['Product ID']||'-')+'">'+esc(r['Product ID']||'-')+'</div></td><td>'+met+'</td><td>'+st+'</td><td>'+histActionCell(platform,r)+'</td></tr>';
+      return '<tr><td>'+histProdCell(r)+'</td><td><div class="hpid" title="'+esc(r['Product ID']||'-')+'">'+esc(r['Product ID']||'-')+'</div></td><td class="numtd">'+histPct(r['Std Target LAPB (%)'])+'</td><td class="numtd">'+histPct(r['Std Komisi Aktual (%)'])+'</td><td class="statustd">'+histBdg(r['Status Std'])+'</td><td class="numtd">'+histPct(r['Ads Target LAPB (%)'])+'</td><td class="numtd">'+histPct(r['Ads Komisi Aktual (%)'])+'</td><td class="statustd">'+histBdg(r['Status Ads'])+'</td><td>'+histActionCell(platform,r)+'</td></tr>';
     }).join('');
   }
   return legend+'<div class="tblwrap histtable"><div class="tblscroll"><table><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div><div class="tfoot">Menampilkan '+rows.length+' baris histori '+(platform==='shopee'?'Shopee':'TikTok')+'. Detail lengkap tetap ada saat download Excel.</div></div>';
